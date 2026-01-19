@@ -1,19 +1,25 @@
+
 # Deployment Guide: MycoStrain Explorer
 
-To share this webapp with your colleagues at a public URL, follow these steps:
+Follow these steps to move your project from AI Studio to a live public URL.
 
-## 1. Prepare your Repository
-Move these files into a GitHub repository. Ensure your `process.env.API_KEY` is not hardcoded in the files.
+## 1. GitHub Setup (Version Control)
+1. Create a new repository on GitHub.
+2. Upload your files (index.html, App.tsx, etc.).
+3. **CRITICAL:** Ensure you do not hardcode your API Key string.
+4. Create a `.gitignore` file and add `.env` to it.
 
-## 2. Choose a Hosting Provider
-We recommend **Vercel** or **Netlify**.
-- Connect your GitHub account.
-- Select the MycoStrain Explorer repository.
-- **Important:** In the "Environment Variables" settings, add a key named `API_KEY` and paste your Google Gemini API key as the value.
+## 2. Vercel Setup (Hosting)
+1. Go to [Vercel.com](https://vercel.com) and sign in with GitHub.
+2. Click **"Add New"** > **"Project"**.
+3. Import your MycoStrain Explorer repository.
+4. Before clicking "Deploy", expand the **Environment Variables** section.
+5. Add the following:
+   - **NAME:** `VITE_API_KEY` (The prefix `VITE_` is essential for the browser to see the key)
+   - **VALUE:** `[Paste your Gemini API Key here]`
+6. Click **Deploy**.
 
-## 3. Public URL
-Once the build is complete, the provider will give you a URL (e.g., `https://myco-strain-explorer.vercel.app`) which you can share on social media.
-
-## 4. Addressing Biochemistry Questions (FAQ)
-If colleagues ask about the data source, you can use this standardized response:
-> "The biochemistry data is generated using a predictive genomic model. The system uses Google Search grounding to identify regional clades and host associations from real-time records (iNaturalist/GBIF), then applies biochemical inference based on established mycological literature to reconstruct the most likely secondary metabolite profile for that specific environment."
+## 3. Troubleshooting "Analysis Failed"
+- If you see an error after deploying, check your Vercel logs. 
+- Ensure you renamed the key to `VITE_API_KEY` and did a **Full Redeploy** (Vercel > Deployments > Redeploy).
+- Ensure your Google Cloud restriction allows the specific Vercel URL.
