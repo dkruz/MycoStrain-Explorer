@@ -5,7 +5,7 @@ import { AnalysisResult } from './types';
 import { StrainMap } from './components/StrainMap';
 import { NetworkGraph } from './components/NetworkGraph';
 import { 
-  Dna, Search, Loader2, AlertCircle, Download, Target, Globe, FileText, Link, Scale, Activity, ChevronDown, Sparkles, Key, ShieldCheck, LogOut, Info, Shield, ExternalLink
+  Dna, Search, Loader2, AlertCircle, Download, Target, Globe, FileText, Link, Scale, Activity, ChevronDown, Sparkles, Key, ShieldCheck, LogOut, Info, Shield, ExternalLink, HelpCircle, ArrowRight
 } from 'lucide-react';
 
 const FOCUS_OPTIONS = ["National Survey", "Pacific Northwest (PNW)", "Appalachian Mountains", "Northeast Deciduous", "Southeast Coastal Plain", "Rocky Mountains / Alpine", "California Floristic", "Boreal Forest / Taiga"];
@@ -21,7 +21,6 @@ export default function App() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      // Accessing aistudio from window. Types are handled by the environment.
       if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
         const authed = await window.aistudio.hasSelectedApiKey();
         setIsAuthorized(authed);
@@ -34,7 +33,6 @@ export default function App() {
     try {
       if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
         await window.aistudio.openSelectKey();
-        // Assume success as per race condition guidelines: proceed immediately.
         setIsAuthorized(true);
         setShowAuthModal(false);
       }
@@ -53,7 +51,6 @@ export default function App() {
       const data = await performMycoAnalysis(species, focusArea);
       setResult(data);
     } catch (err: any) {
-      // If the request fails due to missing key or project issues, trigger re-auth.
       if (err.message?.includes("Requested entity was not found") || err.message === "MISSING_KEY") {
         setIsAuthorized(false);
         setShowAuthModal(true);
@@ -78,16 +75,16 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      {/* Native Auth Modal */}
+      {/* Enhanced Native Auth Modal */}
       {showAuthModal && (
         <div className="fixed inset-0 z-[100] bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2.5rem] p-10 max-w-xl w-full shadow-2xl animate-in zoom-in-95 border border-slate-200">
-            <div className="flex items-center gap-4 mb-6">
+          <div className="bg-white rounded-[2.5rem] p-8 md:p-10 max-w-2xl w-full shadow-2xl animate-in zoom-in-95 border border-slate-200 overflow-y-auto max-h-[90vh] custom-scrollbar">
+            <div className="flex items-center gap-4 mb-8">
               <div className="bg-indigo-600 p-4 rounded-2xl text-white shadow-lg"><Shield size={28} /></div>
               <div>
-                <h3 className="text-2xl font-black text-slate-900 leading-tight">Secure Researcher Access</h3>
+                <h3 className="text-2xl font-black text-slate-900 leading-tight">Researcher Onboarding</h3>
                 <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1 flex items-center gap-1.5">
-                  Private Session • Zero Shared Keys
+                  Private Session • Secure Handshake
                 </p>
               </div>
             </div>
@@ -95,16 +92,45 @@ export default function App() {
             <div className="space-y-6 mb-8">
               <div className="bg-slate-50 border border-slate-100 p-6 rounded-2xl">
                 <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-3 flex items-center gap-2">
-                  <Info size={14} className="text-indigo-600" /> Secure Handshake
+                  <Info size={14} className="text-indigo-600" /> How it works
                 </h4>
-                <p className="text-[12px] text-slate-600 leading-relaxed mb-4">
-                  To protect data privacy and project billing, this application requires you to link your own Google Cloud project key. 
+                <p className="text-[13px] text-slate-600 leading-relaxed">
+                  This bio-intelligence platform requires a <b>Google Cloud Project</b> with a linked <b>Billing Account</b> to perform real-time genomic searches. You must link your own project key to proceed.
                 </p>
-                <ul className="text-[11px] text-slate-500 space-y-2 list-disc pl-4">
-                  <li>You will <b>not</b> see the owner's keys.</li>
-                  <li>The owner will <b>not</b> see your keys or billing.</li>
-                  <li>Requires a project with <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" className="text-indigo-600 underline font-bold">Billing Enabled</a>.</li>
-                </ul>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-indigo-50/50 p-5 rounded-2xl border border-indigo-100/50">
+                  <h5 className="text-[11px] font-black text-indigo-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <Key size={14} /> 1. Get a Key
+                  </h5>
+                  <p className="text-[12px] text-indigo-900/70 mb-4">
+                    Create an account and generate your personal API key.
+                  </p>
+                  <a 
+                    href="https://aistudio.google.com/app/apikey" 
+                    target="_blank" 
+                    className="inline-flex items-center gap-1.5 text-[11px] font-black text-indigo-600 hover:text-indigo-800 transition-colors"
+                  >
+                    OPEN GOOGLE AI STUDIO <ArrowRight size={12} />
+                  </a>
+                </div>
+
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200">
+                  <h5 className="text-[11px] font-black text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <Activity size={14} /> 2. Enable Billing
+                  </h5>
+                  <p className="text-[12px] text-slate-500 mb-4">
+                    The Gemini API requires an active billing project to be used in external apps.
+                  </p>
+                  <a 
+                    href="https://ai.google.dev/gemini-api/docs/billing" 
+                    target="_blank" 
+                    className="inline-flex items-center gap-1.5 text-[11px] font-black text-slate-600 hover:text-slate-900 transition-colors"
+                  >
+                    BILLING GUIDE <ArrowRight size={12} />
+                  </a>
+                </div>
               </div>
             </div>
 
@@ -112,12 +138,17 @@ export default function App() {
               onClick={handleAuth} 
               className="w-full bg-slate-900 hover:bg-indigo-600 text-white py-5 rounded-2xl font-black flex items-center justify-center gap-3 transition-all shadow-xl active:scale-[0.98]"
             >
-              <ExternalLink size={20} /> SELECT GOOGLE API KEY
+              <ExternalLink size={20} /> LINK MY GOOGLE KEY
             </button>
             
-            <button onClick={() => setShowAuthModal(false)} className="w-full mt-4 text-[10px] font-black text-slate-400 hover:text-slate-600 uppercase tracking-widest">
-              Cancel
-            </button>
+            <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+              <p className="text-[11px] text-slate-400 font-medium">
+                Already have a project? Clicking the button above will let you select it from your Google account list.
+              </p>
+              <button onClick={() => setShowAuthModal(false)} className="mt-4 text-[10px] font-black text-slate-300 hover:text-slate-600 uppercase tracking-widest transition-colors">
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -142,7 +173,7 @@ export default function App() {
                 onClick={() => setShowAuthModal(true)} 
                 className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-100 transition-all"
               >
-                <Key size={14} /> Connect Key
+                <HelpCircle size={14} /> Get Started
               </button>
             )}
           </div>
