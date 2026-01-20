@@ -10,13 +10,6 @@ import {
 
 const FOCUS_OPTIONS = ["National Survey", "Pacific Northwest (PNW)", "Appalachian Mountains", "Northeast Deciduous", "Southeast Coastal Plain", "Rocky Mountains / Alpine", "California Floristic", "Boreal Forest / Taiga"];
 
-// Fix: Redefining window.aistudio to match internal expected types or augment existing ones
-declare global {
-  interface Window {
-    aistudio: any;
-  }
-}
-
 export default function App() {
   const [species, setSpecies] = useState('');
   const [focusArea, setFocusArea] = useState(FOCUS_OPTIONS[0]);
@@ -28,6 +21,7 @@ export default function App() {
 
   useEffect(() => {
     const checkAuth = async () => {
+      // Accessing aistudio from window. Types are handled by the environment.
       if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
         const authed = await window.aistudio.hasSelectedApiKey();
         setIsAuthorized(authed);
@@ -40,7 +34,7 @@ export default function App() {
     try {
       if (window.aistudio && typeof window.aistudio.openSelectKey === 'function') {
         await window.aistudio.openSelectKey();
-        // Assume success as per race condition guidelines
+        // Assume success as per race condition guidelines: proceed immediately.
         setIsAuthorized(true);
         setShowAuthModal(false);
       }
@@ -59,7 +53,8 @@ export default function App() {
       const data = await performMycoAnalysis(species, focusArea);
       setResult(data);
     } catch (err: any) {
-      if (err.message.includes("Requested entity was not found") || err.message === "MISSING_KEY") {
+      // If the request fails due to missing key or project issues, trigger re-auth.
+      if (err.message?.includes("Requested entity was not found") || err.message === "MISSING_KEY") {
         setIsAuthorized(false);
         setShowAuthModal(true);
       } else {
