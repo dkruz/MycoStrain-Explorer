@@ -3,42 +3,21 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult } from "../types";
 
 export const performMycoAnalysis = async (speciesName: string, focusArea: string = "USA National"): Promise<AnalysisResult> => {
-  let apiKey: string | undefined;
-
-  // 1. Check if key is in session storage (provided by user via UI)
-  apiKey = sessionStorage.getItem('MYCO_EXPLORER_KEY') || undefined;
-
-  // 2. Fallback to env variables (works in AI Studio development)
-  if (!apiKey) {
-    try {
-      apiKey = (process.env as any)?.API_KEY || (process.env as any)?.VITE_API_KEY;
-    } catch (e) {}
-  }
-
-  // 3. Fallback to global window (some specific wrappers)
-  if (!apiKey) {
-    apiKey = (window as any).VITE_API_KEY || (window as any).API_KEY;
-  }
+  // Use process.env.API_KEY directly as it is injected by the selectKey flow
+  const apiKey = process.env.API_KEY;
 
   if (!apiKey) {
-    // This custom error code triggers the UI Modal in App.tsx
     throw new Error("MISSING_KEY");
   }
 
   const ai = new GoogleGenAI({ apiKey });
   
   const prompt = `
-    Act as a Computational Mycologist and Bioinformatics Researcher. Conduct a deep-dive analysis of: "${speciesName}".
+    Act as a Computational Mycologist and Bioinformatics Researcher. 
+    Analyze the genomic distribution and intraspecific diversity of: "${speciesName}".
+    Focus on regional area: ${focusArea}.
     
-    SEARCH STRATEGY: 
-    1. Query academic databases (UniProt, MycoCosm/JGI, PubMed) and citizen science (GBIF, iNaturalist).
-    2. Identify known secondary metabolite clusters (BGCs) or documented enzyme profiles.
-    
-    TASKS:
-    - Determine NUTRITIONAL STRATEGY.
-    - Estimate TOTAL haplotypes for the regional focus area (${focusArea}).
-    - Model 12 specific haplotypes representing genetic drift.
-    
+    Model 12 hypothetical haplotypes based on known phylogenetic data.
     Return as structured JSON.
   `;
 
