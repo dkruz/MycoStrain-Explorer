@@ -5,7 +5,7 @@ import { AnalysisResult } from './types';
 import { StrainMap } from './components/StrainMap';
 import { NetworkGraph } from './components/NetworkGraph';
 import { 
-  Dna, Search, Loader2, AlertCircle, Download, Target, Globe, FileText, Link, Scale, Activity, ChevronDown, Sparkles, Key, ShieldCheck, LogOut, Info, Shield, ExternalLink, HelpCircle, ArrowRight, AlertTriangle, CheckCircle2, ChevronRight, Zap, RefreshCw
+  Dna, Search, Loader2, AlertCircle, Download, Target, Globe, FileText, Link, Scale, Activity, ChevronDown, Sparkles, Key, ShieldCheck, LogOut, Info, Shield, ExternalLink, HelpCircle, ArrowRight, AlertTriangle, CheckCircle2, ChevronRight, Zap, RefreshCw, Layers
 } from 'lucide-react';
 
 const FOCUS_OPTIONS = ["National Survey", "Pacific Northwest (PNW)", "Appalachian Mountains", "Northeast Deciduous", "Southeast Coastal Plain", "Rocky Mountains / Alpine", "California Floristic", "Boreal Forest / Taiga"];
@@ -22,57 +22,52 @@ export default function App() {
   const [showTroubleshooting, setShowTroubleshooting] = useState(false);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      // Immediate check
-      if (window.aistudio?.hasSelectedApiKey) {
+    let checkInterval: number;
+    let attempts = 0;
+
+    const performCheck = async () => {
+      attempts++;
+      // The handshake bridge (window.aistudio) is only present when the app is framed inside AI Studio
+      if (window.aistudio && typeof window.aistudio.hasSelectedApiKey === 'function') {
         setEnvSupport('supported');
         const authed = await window.aistudio.hasSelectedApiKey();
         setIsAuthorized(authed);
-      } else {
-        // Fallback check after short delay (some bridges inject late)
-        let attempts = 0;
-        const interval = setInterval(async () => {
-          attempts++;
-          if (window.aistudio?.hasSelectedApiKey) {
-            setEnvSupport('supported');
-            const authed = await window.aistudio.hasSelectedApiKey();
-            setIsAuthorized(authed);
-            clearInterval(interval);
-          } else if (attempts > 5) {
-            setEnvSupport('unsupported');
-            clearInterval(interval);
-          }
-        }, 300);
+        window.clearInterval(checkInterval);
+      } else if (attempts > 10) {
+        setEnvSupport('unsupported');
+        window.clearInterval(checkInterval);
       }
     };
-    checkAuth();
+
+    checkInterval = window.setInterval(performCheck, 500);
+    performCheck();
+
+    return () => window.clearInterval(checkInterval);
   }, []);
 
   const handleAuth = () => {
-    console.log("Triggering Google Cloud Project Selection Handshake...");
+    console.log("Initiating Secure Handshake Protocol...");
     
     if (envSupport === 'unsupported') {
-      setError("Handshake bridge not detected. Please ensure you are viewing this app within Google AI Studio.");
+      setError("Handshake bridge missing. You are likely viewing this app outside of the Google AI Studio 'App' frame. Please open the app via the AI Studio interface to link your key.");
       return;
     }
 
     try {
       if (window.aistudio?.openSelectKey) {
-        // IMPORTANT: We do NOT await this. We trigger it and assume success to avoid UI hang.
-        // If popups are blocked, this function might return immediately or throw.
+        // Trigger the Google-managed project selection UI
         window.aistudio.openSelectKey();
         
-        // As per documentation: Assume the key selection was successful and proceed.
+        // Immediate follow-through as per race condition rules
         setIsAuthorized(true);
         setShowAuthModal(false);
         setError(null);
-        console.log("Handshake initiated. Redirecting to research interface.");
       } else {
-        throw new Error("Handshake function (openSelectKey) is missing.");
+        throw new Error("Bridge function not available.");
       }
     } catch (err) {
       console.error("Auth Handshake failed:", err);
-      setError("The project selection window failed to trigger. PLEASE CHECK YOUR POPUP BLOCKER and ensure you are in the correct workspace.");
+      setError("The project selection popup was blocked. Please disable your browser's popup blocker for this site and try again.");
     }
   };
 
@@ -122,28 +117,35 @@ export default function App() {
               </div>
               <h3 className="text-3xl font-black text-slate-900 tracking-tight">Researcher Setup Wizard</h3>
               <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2">
-                Genetic Data Access Protocol
+                Secure Handshake Protocol
               </p>
             </header>
 
             <div className="space-y-4 mb-10">
+              {envSupport === 'unsupported' && (
+                <div className="bg-amber-50 border border-amber-200 p-6 rounded-3xl flex gap-4 mb-6">
+                  <AlertCircle className="text-amber-600 shrink-0" size={24} />
+                  <div>
+                    <h4 className="text-[11px] font-black text-amber-900 uppercase tracking-widest mb-1">External Access Detected</h4>
+                    <p className="text-[12px] text-amber-800 leading-relaxed">
+                      You are viewing the app on a direct URL (e.g. Vercel). To use the <b>Project Linker</b>, you must access this app through your <b>Google AI Studio</b> dashboard.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Step 1 */}
               <div className="group bg-slate-50 border border-slate-200 p-6 rounded-3xl transition-all hover:bg-white hover:shadow-md">
                 <div className="flex items-start gap-4">
                   <div className="bg-indigo-100 text-indigo-600 w-8 h-8 rounded-full flex items-center justify-center font-black shrink-0">1</div>
-                  <div>
-                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight mb-1">Acquire Credentials</h4>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight mb-1">Google Cloud Account</h4>
                     <p className="text-[13px] text-slate-500 leading-relaxed mb-3">
-                      Verify you have an active account with at least one project.
+                      The researcher must have a Google account with an active Cloud Project.
                     </p>
-                    <div className="flex gap-4">
-                      <a href="https://aistudio.google.com/" target="_blank" className="inline-flex items-center gap-2 text-[11px] font-black text-indigo-600 hover:gap-3 transition-all">
-                        AI STUDIO <ExternalLink size={12} />
-                      </a>
-                      <a href="https://console.cloud.google.com/" target="_blank" className="inline-flex items-center gap-2 text-[11px] font-black text-slate-500 hover:gap-3 transition-all">
-                        CLOUD CONSOLE <ExternalLink size={12} />
-                      </a>
-                    </div>
+                    <a href="https://console.cloud.google.com/" target="_blank" className="inline-flex items-center gap-2 text-[11px] font-black text-indigo-600 hover:gap-3 transition-all">
+                      GO TO CLOUD CONSOLE <ExternalLink size={12} />
+                    </a>
                   </div>
                 </div>
               </div>
@@ -152,13 +154,13 @@ export default function App() {
               <div className="group bg-slate-50 border border-slate-200 p-6 rounded-3xl transition-all hover:bg-white hover:shadow-md">
                 <div className="flex items-start gap-4">
                   <div className="bg-indigo-100 text-indigo-600 w-8 h-8 rounded-full flex items-center justify-center font-black shrink-0">2</div>
-                  <div>
-                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight mb-1">Check Project Billing</h4>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-black text-slate-900 uppercase tracking-tight mb-1">Billing Verification</h4>
                     <p className="text-[13px] text-slate-500 leading-relaxed mb-3">
-                      Projects must be associated with a billing account to support "Pro" search tools.
+                      <b>Crucial:</b> Google will only display projects in the selection window if they have a <b>Paid Billing Account</b> attached.
                     </p>
                     <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" className="inline-flex items-center gap-2 text-[11px] font-black text-indigo-600 hover:gap-3 transition-all">
-                      VERIFY BILLING STATUS <ExternalLink size={12} />
+                      CHECK BILLING STATUS <ExternalLink size={12} />
                     </a>
                   </div>
                 </div>
@@ -170,24 +172,28 @@ export default function App() {
                 <div className="flex items-start gap-4 relative z-10">
                   <div className="bg-white/20 text-white w-8 h-8 rounded-full flex items-center justify-center font-black shrink-0">3</div>
                   <div className="flex-1">
-                    <h4 className="text-sm font-black uppercase tracking-tight mb-1">Initiate Link</h4>
+                    <h4 className="text-sm font-black uppercase tracking-tight mb-1">Final Handshake</h4>
                     <p className="text-[13px] text-indigo-100 leading-relaxed mb-5">
-                      Click below. If <b>nothing happens</b>, check your browser's address bar for a "Popup Blocked" alert.
+                      Click below to open the Google Selection Window. Ensure <b>popups are allowed</b> in your browser.
                     </p>
                     
                     <button 
                       onClick={handleAuth} 
-                      className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-3 transition-all bg-white text-indigo-600 hover:bg-slate-50 shadow-lg active:scale-95 ${
-                        envSupport === 'unsupported' ? 'opacity-50 cursor-not-allowed' : ''
+                      disabled={envSupport !== 'supported'}
+                      className={`w-full py-4 rounded-2xl font-black flex items-center justify-center gap-3 transition-all ${
+                        envSupport !== 'supported' 
+                        ? 'bg-indigo-500/50 text-indigo-200 cursor-not-allowed' 
+                        : 'bg-white text-indigo-600 hover:bg-slate-50 shadow-lg active:scale-95'
                       }`}
                     >
-                      <Zap size={20} /> LINK GOOGLE PROJECT
+                      {envSupport === 'checking' ? <RefreshCw className="animate-spin" /> : <Zap size={20} />}
+                      {envSupport === 'unsupported' ? 'INCOMPATIBLE ENVIRONMENT' : 'LINK GOOGLE PROJECT'}
                     </button>
                     
                     <div className="mt-4 p-3 bg-red-500/20 border border-red-400/30 rounded-xl flex items-center gap-2">
                       <AlertTriangle size={14} className="text-white shrink-0" />
                       <p className="text-[10px] font-bold text-white uppercase tracking-tight">
-                        Warning: Disable Popup Blockers to proceed.
+                        Warning: Popups must be enabled.
                       </p>
                     </div>
                   </div>
@@ -198,31 +204,32 @@ export default function App() {
             <div className="border-t border-slate-100 pt-6">
               <div className="flex items-center justify-between mb-6 px-2">
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${envSupport === 'supported' ? 'bg-green-500 animate-pulse' : 'bg-red-400'}`}></div>
+                  <div className={`w-2 h-2 rounded-full ${envSupport === 'supported' ? 'bg-green-500 animate-pulse' : 'bg-slate-300'}`}></div>
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    Cloud Bridge: {envSupport === 'supported' ? 'Connected' : 'Disconnected'}
+                    Connection: {envSupport === 'supported' ? 'Active Bridge' : envSupport === 'checking' ? 'Connecting...' : 'Standalone Mode'}
                   </span>
                 </div>
                 <button 
                   onClick={() => setShowTroubleshooting(!showTroubleshooting)}
                   className="flex items-center gap-1 text-[10px] font-black text-indigo-600 hover:text-indigo-800 uppercase tracking-widest"
                 >
-                  Help <ChevronDown size={12} className={showTroubleshooting ? 'rotate-180' : ''} />
+                  Troubleshooting <ChevronDown size={12} className={showTroubleshooting ? 'rotate-180' : ''} />
                 </button>
               </div>
               
               {showTroubleshooting && (
-                <div className="bg-slate-50 rounded-2xl p-5 text-[12px] text-slate-600 space-y-3 animate-in fade-in slide-in-from-top-2 mb-6">
-                  <p><strong>"Nothing happens when I click?"</strong> Chrome, Safari, and Brave often block the project selection popup. Look at your URL bar for a small icon to "Always allow popups" for this site.</p>
-                  <p><strong>"No projects found?"</strong> You must have a project in the <a href="https://console.cloud.google.com/" target="_blank" className="underline font-bold">Cloud Console</a>. Creating a key in AI Studio automatically creates one.</p>
+                <div className="bg-slate-50 rounded-2xl p-5 text-[12px] text-slate-600 space-y-4 animate-in fade-in slide-in-from-top-2 mb-6 border border-slate-100">
+                  <p><strong>"The selection window is empty?"</strong> This happens if you have no Google Cloud projects with billing. Go to the Cloud Console and create a project with a billing account attached.</p>
+                  <p><strong>"Button does nothing?"</strong> Look for a small red 'blocked' icon in your browser's address bar. Click it and select "Always allow popups".</p>
+                  <p><strong>"Still can't proceed?"</strong> Ensure you are using a modern browser like Chrome or Edge. Brave's aggressive shields may block this handshake.</p>
                 </div>
               )}
 
               <button 
                 onClick={() => setShowAuthModal(false)} 
-                className="w-full text-center text-[10px] font-black text-slate-300 hover:text-slate-400 uppercase tracking-widest"
+                className="w-full text-center text-[10px] font-black text-slate-300 hover:text-slate-400 uppercase tracking-widest transition-colors"
               >
-                DISMISS
+                DISMISS WIZARD
               </button>
             </div>
           </div>
@@ -249,7 +256,7 @@ export default function App() {
                   onClick={() => setShowAuthModal(true)} 
                   className="text-[10px] font-black text-slate-400 hover:text-indigo-600 transition-colors uppercase tracking-widest"
                 >
-                  Update Project
+                  Change Project
                 </button>
               </div>
             ) : (
@@ -257,7 +264,7 @@ export default function App() {
                 onClick={() => setShowAuthModal(true)} 
                 className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
               >
-                <HelpCircle size={14} /> Setup Access
+                <HelpCircle size={14} /> Setup Researcher Access
               </button>
             )}
           </div>
@@ -306,11 +313,11 @@ export default function App() {
           <div className="max-w-2xl mx-auto mb-10 bg-red-50 border border-red-200 p-8 rounded-[2rem] text-red-700 flex items-start gap-4">
             <div className="bg-red-100 p-2 rounded-lg shrink-0"><AlertTriangle size={20} /></div>
             <div>
-              <h4 className="font-black text-sm uppercase tracking-tight mb-1">System Feedback</h4>
+              <h4 className="font-black text-sm uppercase tracking-tight mb-1">Access Error</h4>
               <p className="text-sm font-medium leading-relaxed">{error}</p>
               {!isAuthorized && (
                 <button onClick={() => setShowAuthModal(true)} className="mt-4 text-[10px] font-black uppercase underline tracking-widest text-red-800 hover:text-red-950">
-                  Open Researcher Wizard
+                  Fix Connectivity in Wizard
                 </button>
               )}
             </div>
@@ -320,8 +327,8 @@ export default function App() {
         {loading && (
           <div className="py-32 text-center">
             <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-            <h3 className="text-xl font-black text-slate-800 tracking-tight">Sequence Alignment in Progress...</h3>
-            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2">Querying Global Genomic Repositories</p>
+            <h3 className="text-xl font-black text-slate-800 tracking-tight tracking-tighter">Sequence Alignment in Progress...</h3>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mt-2">Connecting to Global Genomic Repositories</p>
           </div>
         )}
 
@@ -332,7 +339,7 @@ export default function App() {
                 { label: "Regional Est.", val: result.estimatedTotalHaplotypes, icon: Target, color: "text-slate-900" },
                 { label: "Global Est.", val: result.estimatedGlobalHaplotypes, icon: Globe, color: "text-indigo-600" },
                 { label: "Drift (π)", val: result.nucleotideDiversity.toFixed(4), icon: Scale, color: "text-slate-900" },
-                { label: "Analysis Mode", val: "Verified", icon: Sparkles, color: "text-amber-500" }
+                { label: "Mode", val: "Research", icon: Sparkles, color: "text-amber-500" }
               ].map((stat, i) => (
                 <div key={i} className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col justify-between">
                   <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest flex items-center gap-2 mb-3">
@@ -351,7 +358,7 @@ export default function App() {
                 <div className="bg-white p-12 rounded-[3rem] border border-slate-200 relative overflow-hidden shadow-sm">
                   <div className="flex items-center gap-4 mb-8 pb-6 border-b border-slate-100">
                     <div className="bg-indigo-50 p-3 rounded-2xl text-indigo-600"><FileText size={24} /></div>
-                    <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900">Research Dossier</h3>
+                    <h3 className="text-2xl font-black uppercase tracking-tight text-slate-900">Genomic Dossier</h3>
                   </div>
                   <div className="prose prose-slate max-w-none text-slate-700 leading-relaxed whitespace-pre-wrap font-medium">
                     {result.dossier}
@@ -393,7 +400,7 @@ export default function App() {
       
       <footer className="bg-white border-t border-slate-200 py-12 mt-20">
         <div className="max-w-7xl mx-auto px-6 text-center">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Mycological Data Explorer v2.0</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Mycological Genomics Protocol v2.1</p>
         </div>
       </footer>
     </div>
