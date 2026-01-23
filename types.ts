@@ -6,8 +6,9 @@ export interface Haplotype {
   lat: number;
   lng: number;
   similarity: number;
-  substrate: string; // Changed from 'host' to be inclusive of saprophytes
+  substrate: string; 
   chemistry: string;
+  insectAssociations: string; // New: Ecological interactions with insects
   regionalPrevalence: number; // 1-10 scale
   parentHaplotypeId?: string; 
 }
@@ -21,8 +22,8 @@ export interface AnalysisResult {
   speciesName: string;
   haplotypes: Haplotype[];
   nucleotideDiversity: number;
-  estimatedTotalHaplotypes: number; // Local/Regional estimate
-  estimatedGlobalHaplotypes: number; // Worldwide estimate
+  estimatedTotalHaplotypes: number; 
+  estimatedGlobalHaplotypes: number; 
   dossier: string;
   sources: GroundingSource[];
   focusArea: string;
