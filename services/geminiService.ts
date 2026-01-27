@@ -3,28 +3,28 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult } from "../types";
 
 export const performMycoAnalysis = async (speciesName: string, focusArea: string = "USA National"): Promise<AnalysisResult> => {
-  const apiKey = process.env.API_KEY;
-
-  if (!apiKey) {
+  if (!process.env.API_KEY) {
     throw new Error("MISSING_KEY");
   }
 
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const prompt = `
-    Act as a Senior Computational Mycologist and Ecological Researcher. 
-    Analyze the genomic distribution and ecological interactions of: "${speciesName}".
+    Act as a Senior Computational Mycologist. 
+    Analyze the genomic distribution and ecological niche of: "${speciesName}".
     Focus Area: ${focusArea}.
     
-    Research Requirements:
-    1. Model exactly 12 scientifically plausible clades (haplotypes) reflecting regional genetic drift.
-    2. Determine the ecological strategy of this species (Saprophytic, Mycorrhizal, or Pathogenic).
-    3. For EACH haplotype, provide a detailed "Insect Associations" field:
-       - If Saprophytic: Include details on Symbionts, Fungal Feeders (Mycetophagous), Saproxylic/Detritivorous insects, and Opportunistic Associations.
-       - If Mycorrhizal: Include details on Tri-trophic Interactions (Plant-Fungus-Insect) and Mycophages.
-       - Be specific with Genus/Species of insects where possible.
-    4. For each haplotype, include Chemistry (physiological adaptations) and SNPs (defining markers like ITS1, TEF1, RPB2).
-    5. Return as structured JSON adhering to the provided schema.
+    CRITICAL RESEARCH REQUIREMENTS:
+    1. HAPLOTYPES: Model exactly 12 scientifically plausible haplotypes.
+    2. GEOGRAPHIC SPREAD: Ensure the coordinates (lat/lng) are realistically distributed across the USA. 
+       - COORDINATE RANGE (STRICT): Latitude 25.0 to 48.0, Longitude -124.0 to -67.0.
+       - DO NOT generate points in Canada, Mexico, or the open ocean.
+       - Use precision decimals (e.g. 45.5231, -122.6765).
+    3. HOST ASSOCIATION (MANDATORY): For every haplotype, identify the specific primary host species (e.g., "Abies balsamea").
+    4. ENTOMOLOGICAL DATA: Describe specific insect vectors, symbionts, or mycophages for each regional clade.
+    5. GENOMICS: Provide regional nucleotide diversity (pi) and 3-5 defining SNPs.
+    
+    Return as structured JSON.
   `;
 
   const response = await ai.models.generateContent({
@@ -40,7 +40,7 @@ export const performMycoAnalysis = async (speciesName: string, focusArea: string
           nucleotideDiversity: { type: Type.NUMBER },
           estimatedTotalHaplotypes: { type: Type.INTEGER },
           estimatedGlobalHaplotypes: { type: Type.INTEGER },
-          dossier: { type: Type.STRING, description: "Executive summary of regional diversity and entomological context." },
+          dossier: { type: Type.STRING },
           focusArea: { type: Type.STRING },
           haplotypes: {
             type: Type.ARRAY,
@@ -55,7 +55,7 @@ export const performMycoAnalysis = async (speciesName: string, focusArea: string
                 similarity: { type: Type.NUMBER },
                 substrate: { type: Type.STRING },
                 chemistry: { type: Type.STRING },
-                insectAssociations: { type: Type.STRING, description: "Detailed entomological data based on the requested categories." },
+                insectAssociations: { type: Type.STRING },
                 regionalPrevalence: { type: Type.INTEGER }
               },
               required: ["id", "region", "snps", "lat", "lng", "similarity", "substrate", "chemistry", "insectAssociations", "regionalPrevalence"]
