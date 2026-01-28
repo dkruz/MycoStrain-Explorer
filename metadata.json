@@ -1,6 +1,6 @@
 {
   "name": "MycoStrain Explorer",
-  "description": "An advanced bioinformatics tool for elucidating intraspecific genetic diversity, SNP variation, and geographic distribution of fungal species using Gemini-3-Pro and real-time grounding.",
+  "description": "v4.1 Professional Dashboard: Advanced bioinformatics tool for elucidating intraspecific genetic diversity, SNP variation, and geographic distribution of fungal species.",
   "requestFramePermissions": [
     "geolocation"
   ]

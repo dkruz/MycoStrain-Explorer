@@ -17,8 +17,9 @@ export const performMycoAnalysis = async (speciesName: string, focusArea: string
     CRITICAL RESEARCH REQUIREMENTS:
     1. HAPLOTYPES: Model exactly 12 scientifically plausible haplotypes.
     2. GEOGRAPHIC SPREAD: Ensure the coordinates (lat/lng) are realistically distributed across the USA. 
-       - COORDINATE RANGE (STRICT): Latitude 25.0 to 48.0, Longitude -124.0 to -67.0.
+       - COORDINATE RANGE (MANDATORY): Latitude 25.0 to 48.0, Longitude -124.0 to -67.0.
        - DO NOT generate points in Canada, Mexico, or the open ocean.
+       - These points must strictly fall within the continental USA silhouette.
        - Use precision decimals (e.g. 45.5231, -122.6765).
     3. HOST ASSOCIATION (MANDATORY): For every haplotype, identify the specific primary host species (e.g., "Abies balsamea").
     4. ENTOMOLOGICAL DATA: Describe specific insect vectors, symbionts, or mycophages for each regional clade.
