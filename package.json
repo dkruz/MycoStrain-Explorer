@@ -7,21 +7,22 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "start": "vite --host 0.0.0.0 --port 8080"
+    "start": "sirv dist --host 0.0.0.0 --port 8080 --single"
   },
   "dependencies": {
     "@google/genai": "^1.37.0",
     "d3": "^7.9.0",
     "lucide-react": "^0.462.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "vite": "^6.0.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "sirv-cli": "^3.0.0"
   },
   "devDependencies": {
     "@types/d3": "^7.4.3",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@vitejs/plugin-react": "^4.3.4",
-    "typescript": "~5.6.2",
-    "vite": "^6.0.0"
+    "typescript": "~5.6.2"
   }
 }

@@ -5,16 +5,15 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 8080,
-    host: '0.0.0.0',
-    allowedHosts: true
+    host: '0.0.0.0'
   },
   preview: {
     port: 8080,
-    host: '0.0.0.0',
-    allowedHosts: true
+    host: '0.0.0.0'
   },
   build: {
     outDir: 'dist',
-    sourcemap: true
+    sourcemap: false,
+    emptyOutDir: true
   }
 });
