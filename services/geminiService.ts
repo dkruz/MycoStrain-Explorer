@@ -2,10 +2,19 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult } from "../types";
 
 export const performMycoAnalysis = async (speciesName: string, focusArea: string = "USA National"): Promise<AnalysisResult> => {
-  // Ensure we check for both standard and common platform-specific environment variable names
-  const apiKey = (process.env.API_KEY || (process.env as any).GOOGLE_API_KEY);
+  // Robustly attempt to find the API key in various possible locations
+  // 1. process.env (shimmed or injected)
+  // 2. window.API_KEY (some platforms)
+  // 3. window.process.env (browser-based shims)
+  const apiKey = 
+    (process.env as any).API_KEY || 
+    (process.env as any).GOOGLE_API_KEY || 
+    (window as any).API_KEY || 
+    (window as any).process?.env?.API_KEY ||
+    (window as any).process?.env?.GOOGLE_API_KEY;
   
   if (!apiKey) {
+    console.error("API Key Search Failure. Checked: process.env.API_KEY, GOOGLE_API_KEY, window.API_KEY");
     throw new Error("MISSING_KEY");
   }
 
@@ -35,8 +44,6 @@ export const performMycoAnalysis = async (speciesName: string, focusArea: string
     contents: prompt,
     config: {
       tools: [{ googleSearch: {} }],
-      // We avoid setting responseMimeType: "application/json" because when googleSearch is enabled,
-      // the model may return text along with grounding citations which can break strict JSON parsing.
       responseSchema: {
         type: Type.OBJECT,
         properties: {
@@ -73,14 +80,12 @@ export const performMycoAnalysis = async (speciesName: string, focusArea: string
 
   const rawText = response.text || '';
   
-  // As per instructions, when googleSearch is used, the text might not be pure JSON.
-  // We extract the JSON part robustly using a regex match.
   let jsonStr = '';
   const jsonMatch = rawText.match(/\{[\s\S]*\}/);
   if (jsonMatch) {
     jsonStr = jsonMatch[0];
   } else {
-    throw new Error("The model did not return a valid JSON structure. Output: " + rawText.substring(0, 100));
+    throw new Error("The model did not return a valid JSON structure.");
   }
 
   const parsed = JSON.parse(jsonStr);
