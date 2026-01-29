@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { Haplotype } from '../types';
@@ -12,7 +11,6 @@ interface StrainMapProps {
 export const StrainMap: React.FC<StrainMapProps> = ({ data, speciesName }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
-  // Fix: Replaced missing ZoomBehavior type with any
   const zoomRef = useRef<any>(null);
   
   const [selectedStrain, setSelectedStrain] = useState<Haplotype | null>(null);
@@ -21,18 +19,11 @@ export const StrainMap: React.FC<StrainMapProps> = ({ data, speciesName }) => {
 
   const width = 1200;
   const height = 750;
-  // Fix: Cast d3 to any to access scaleLinear
   const radiusScale = (d3 as any).scaleLinear().domain([95, 100]).range([15, 30]).clamp(true);
 
   const resetToHome = () => {
     if (!svgRef.current || !zoomRef.current || !statesGeoData) return;
-    // Fix: Cast d3 to any to access select
     const svg = (d3 as any).select(svgRef.current);
-    
-    // Fix: Cast d3 to any to access geoMercator
-    const projection = (d3 as any).geoMercator().fitExtent([[50, 50], [width - 50, height - 50]], statesGeoData);
-    
-    // Fix: Cast d3 to any to access zoomIdentity
     svg.transition().duration(1000).call(
       zoomRef.current.transform, 
       (d3 as any).zoomIdentity
@@ -41,7 +32,6 @@ export const StrainMap: React.FC<StrainMapProps> = ({ data, speciesName }) => {
 
   const handleZoom = (type: 'in' | 'out') => {
     if (!svgRef.current || !zoomRef.current) return;
-    // Fix: Cast d3 to any to access select
     const svg = (d3 as any).select(svgRef.current);
     svg.transition().duration(300).call(zoomRef.current.scaleBy, type === 'in' ? 2 : 0.5);
   };
@@ -49,13 +39,11 @@ export const StrainMap: React.FC<StrainMapProps> = ({ data, speciesName }) => {
   useEffect(() => {
     if (!svgRef.current || !gRef.current) return;
     
-    // Fix: Cast d3 to any for selections and zoom
     const svg = (d3 as any).select(svgRef.current);
     const g = (d3 as any).select(gRef.current);
     
     g.selectAll("*").remove();
 
-    // Fix: Cast d3 to any to access zoom
     const zoomBehavior = (d3 as any).zoom()
       .scaleExtent([0.1, 100])
       .on("zoom", (event: any) => {
@@ -64,7 +52,6 @@ export const StrainMap: React.FC<StrainMapProps> = ({ data, speciesName }) => {
         g.selectAll(".node-dot").attr("r", (d: any) => radiusScale(d.similarity) / k);
         g.selectAll(".node-dot").attr("stroke-width", 2 / k);
         g.selectAll(".node-glow").attr("r", (d: any) => (radiusScale(d.similarity) + 15) / k);
-        // Silhouette stroke stays sharp
         g.selectAll(".national-silhouette").attr("stroke-width", 3 / k);
       });
     
@@ -74,38 +61,30 @@ export const StrainMap: React.FC<StrainMapProps> = ({ data, speciesName }) => {
     const drawMap = async () => {
       try {
         setMapStatus('loading');
-        
-        // Fetching robust USA GeoJSON
         const response = await fetch("https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json");
         if (!response.ok) throw new Error("Basemap dataset inaccessible");
         const rawData = await response.json();
         
-        // Filter to Continental US to ensure a clean Mercator silhouette
         const continentalFeatures = rawData.features.filter((f: any) => 
           !['AK', 'HI', 'PR', 'Alaska', 'Hawaii', 'Puerto Rico'].includes(f.properties.name)
         );
         const statesData = { ...rawData, features: continentalFeatures };
         setStatesGeoData(statesData);
 
-        // Fix: Cast d3 to any for projections and paths
         const projection = (d3 as any).geoMercator().fitExtent([[80, 80], [width - 80, height - 80]], statesData);
         const pathGenerator = (d3 as any).geoPath().projection(projection);
 
-        // LAYER 1: NATIONAL SILHOUETTE
         const basemap = g.append("g").attr("class", "basemap");
         
-        // Draw the states as one solid block (no stroke)
         basemap.selectAll(".state-fill")
           .data(statesData.features)
           .enter()
           .append("path")
           .attr("class", "state-fill")
           .attr("d", pathGenerator as any)
-          .attr("fill", "#0f172a") // Slate-950
+          .attr("fill", "#0f172a")
           .style("pointer-events", "none");
 
-        // Draw ONE big perimeter stroke for the entire group
-        // This simulates a National Boundary perfectly
         basemap.selectAll(".national-silhouette")
           .data(statesData.features)
           .enter()
@@ -113,7 +92,7 @@ export const StrainMap: React.FC<StrainMapProps> = ({ data, speciesName }) => {
           .attr("class", "national-silhouette")
           .attr("d", pathGenerator as any)
           .attr("fill", "transparent")
-          .attr("stroke", "#ffffff") // PURE WHITE SILHOUETTE
+          .attr("stroke", "#ffffff")
           .attr("stroke-width", 3)
           .attr("stroke-opacity", 1)
           .style("vector-effect", "non-scaling-stroke")
@@ -121,11 +100,9 @@ export const StrainMap: React.FC<StrainMapProps> = ({ data, speciesName }) => {
 
         setMapStatus('ready');
 
-        // LAYER 2: GENOMIC DATA NODES
         if (data && data.length > 0) {
           const pointsLayer = g.append("g").attr("class", "nodes");
           
-          // STRICTOR SANITIZATION: Skip any points that might be corrupted or projecting to NaN
           const validData = data.filter(d => {
             if (typeof d.lat !== 'number' || typeof d.lng !== 'number') return false;
             const projected = projection([d.lng, d.lat]);
@@ -137,11 +114,10 @@ export const StrainMap: React.FC<StrainMapProps> = ({ data, speciesName }) => {
             .enter()
             .append("circle")
             .attr("class", "node-glow")
-            .attr("cx", d => projection([d.lng, d.lat])![0])
-            .attr("cy", d => projection([d.lng, d.lat])![1])
-            .attr("r", d => radiusScale(d.similarity) + 15)
-            // Fix: Cast d3 to any for interpolation
-            .attr("fill", d => (d3 as any).interpolateViridis(d.similarity / 100))
+            .attr("cx", (d: any) => projection([d.lng, d.lat])![0])
+            .attr("cy", (d: any) => projection([d.lng, d.lat])![1])
+            .attr("r", (d: any) => radiusScale(d.similarity) + 15)
+            .attr("fill", (d: any) => (d3 as any).interpolateViridis(d.similarity / 100))
             .attr("fill-opacity", 0.4)
             .style("pointer-events", "none");
 
@@ -150,31 +126,26 @@ export const StrainMap: React.FC<StrainMapProps> = ({ data, speciesName }) => {
             .enter()
             .append("circle")
             .attr("class", "node-dot")
-            .attr("cx", d => projection([d.lng, d.lat])![0])
-            .attr("cy", d => projection([d.lng, d.lat])![1])
-            .attr("r", d => radiusScale(d.similarity))
-            // Fix: Cast d3 to any for interpolation
-            .attr("fill", d => (d3 as any).interpolateViridis(d.similarity / 100))
+            .attr("cx", (d: any) => projection([d.lng, d.lat])![0])
+            .attr("cy", (d: any) => projection([d.lng, d.lat])![1])
+            .attr("r", (d: any) => radiusScale(d.similarity))
+            .attr("fill", (d: any) => (d3 as any).interpolateViridis(d.similarity / 100))
             .attr("stroke", "#ffffff")
             .attr("stroke-width", 2)
             .attr("filter", "drop-shadow(0 0 15px rgba(0,0,0,0.8))")
             .style("cursor", "pointer")
-            .on("mouseover", function(event, d) {
-               // Fix: Cast d3 to any for zoomTransform and select
+            .on("mouseover", function(this: any, event: any, d: any) {
                const k = (d3 as any).zoomTransform(svg.node()!).k;
                (d3 as any).select(this).raise().transition().duration(200).attr("r", (radiusScale(d.similarity) * 2.5) / k);
                setSelectedStrain(d);
             })
-            .on("mouseout", function(event, d) {
-               // Fix: Cast d3 to any for zoomTransform and select
+            .on("mouseout", function(this: any, event: any, d: any) {
                const k = (d3 as any).zoomTransform(svg.node()!).k;
                (d3 as any).select(this).transition().duration(200).attr("r", radiusScale(d.similarity) / k);
             });
 
-          // Autofit viewport to the actual data spread
           if (validData.length > 0) {
              const points = validData.map(d => projection([d.lng, d.lat]) as [number, number]);
-             // Fix: Cast d3 to any for extent
              const xExt = (d3 as any).extent(points, (p: any) => p[0]) as [number, number];
              const yExt = (d3 as any).extent(points, (p: any) => p[1]) as [number, number];
              const x = (xExt[0] + xExt[1]) / 2;
@@ -183,7 +154,6 @@ export const StrainMap: React.FC<StrainMapProps> = ({ data, speciesName }) => {
              const dy = yExt[1] - yExt[0];
              const scale = Math.min(10, 0.75 / Math.max(dx / width, dy / height));
              
-             // Fix: Cast d3 to any for zoomIdentity
              svg.transition().duration(1500).call(
                zoomBehavior.transform, 
                (d3 as any).zoomIdentity.translate(width/2 - scale*x, height/2 - scale*y).scale(scale)
@@ -213,7 +183,6 @@ export const StrainMap: React.FC<StrainMapProps> = ({ data, speciesName }) => {
           <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Similarity Index</span>
           <div className="flex h-3 gap-1">
             {[95, 96, 97, 98, 99, 100].map(v => (
-               // Fix: Cast d3 to any for interpolateViridis
                <div key={v} className="w-8 h-full rounded-full" style={{ background: (d3 as any).interpolateViridis(v/100) }}></div>
             ))}
           </div>
@@ -242,7 +211,6 @@ export const StrainMap: React.FC<StrainMapProps> = ({ data, speciesName }) => {
             <g ref={gRef}></g>
           </svg>
 
-          {/* Precision Controls */}
           <div className="absolute bottom-12 left-12 flex flex-col gap-4 opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 scale-100 origin-bottom-left">
             <button onClick={() => handleZoom('in')} className="p-5 bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl hover:bg-slate-800 active:scale-90 transition-all text-white hover:text-indigo-400"><ZoomIn size={24} /></button>
             <button onClick={() => handleZoom('out')} className="p-5 bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl hover:bg-slate-800 active:scale-90 transition-all text-white hover:text-indigo-400"><ZoomOut size={24} /></button>

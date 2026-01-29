@@ -1,10 +1,8 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { Haplotype } from '../types';
 import { GitBranch, Share2, Bug, Target, Sparkles } from 'lucide-react';
 
-// Fix: Redefined SimulationNode to avoid broken d3.SimulationNodeDatum reference
 interface SimulationNode extends Haplotype {
   x?: number;
   y?: number;
@@ -23,7 +21,6 @@ export const NetworkGraph: React.FC<{ data: Haplotype[] }> = ({ data }) => {
     if (!svgRef.current || !data || data.length === 0) return;
     const width = 800;
     const height = 500;
-    // Fix: Cast d3 to any to access select
     const svg = (d3 as any).select(svgRef.current);
     svg.selectAll("*").remove();
     const g = svg.append("g");
@@ -38,7 +35,6 @@ export const NetworkGraph: React.FC<{ data: Haplotype[] }> = ({ data }) => {
       }
     });
 
-    // Fix: Cast d3 to any for forceSimulation and its related forces
     const simulation = (d3 as any).forceSimulation(nodes)
       .force("link", (d3 as any).forceLink(links).id((d: any) => d.id).distance(120))
       .force("charge", (d3 as any).forceManyBody().strength(-800))
@@ -46,17 +42,15 @@ export const NetworkGraph: React.FC<{ data: Haplotype[] }> = ({ data }) => {
       .force("collision", (d3 as any).forceCollide().radius(60));
 
     const link = g.append("g").attr("stroke", "#e2e8f0").selectAll("line").data(links).enter().append("line").attr("stroke-width", 2).attr("stroke-dasharray", "4,4");
-    // Fix: Cast d3 to any for drag behavior
     const node = g.append("g").selectAll("g").data(nodes).enter().append("g")
       .call((d3 as any).drag()
         .on("start", (event: any, d: any) => { if (!event.active) simulation.alphaTarget(0.3).restart(); d.fx = d.x; d.fy = d.y; })
         .on("drag", (event: any, d: any) => { d.fx = event.x; d.fy = event.y; })
         .on("end", (event: any, d: any) => { if (!event.active) simulation.alphaTarget(0); d.fx = null; d.fy = null; }));
 
-    // Fix: Cast d3 to any for interpolateViridis
     node.append("circle").attr("r", 22).attr("fill", (d: any) => (d3 as any).interpolateViridis(d.similarity / 100)).attr("stroke", "#fff").attr("stroke-width", 3).style("cursor", "pointer")
       .on("mouseover", (event: any, d: any) => setHoveredNode(d)).on("mouseout", () => setHoveredNode(null));
-    node.append("text").text(d => d.id).attr("dy", 35).attr("text-anchor", "middle").attr("font-size", "9px").attr("font-weight", "900").attr("class", "uppercase tracking-widest fill-slate-400");
+    node.append("text").text((d: any) => d.id).attr("dy", 35).attr("text-anchor", "middle").attr("font-size", "9px").attr("font-weight", "900").attr("class", "uppercase tracking-widest fill-slate-400");
     simulation.on("tick", () => {
       link.attr("x1", (d: any) => d.source.x).attr("y1", (d: any) => d.source.y).attr("x2", (d: any) => d.target.x).attr("y2", (d: any) => d.target.y);
       node.attr("transform", (d: any) => `translate(${d.x},${d.y})`);
