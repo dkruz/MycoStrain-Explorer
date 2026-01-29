@@ -2,19 +2,12 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult } from "../types";
 
 export const performMycoAnalysis = async (speciesName: string, focusArea: string = "USA National"): Promise<AnalysisResult> => {
-  // Robustly attempt to find the API key in various possible locations
-  // 1. process.env (shimmed or injected)
-  // 2. window.API_KEY (some platforms)
-  // 3. window.process.env (browser-based shims)
-  const apiKey = 
-    (process.env as any).API_KEY || 
-    (process.env as any).GOOGLE_API_KEY || 
-    (window as any).API_KEY || 
-    (window as any).process?.env?.API_KEY ||
-    (window as any).process?.env?.GOOGLE_API_KEY;
+  // Use the environment variable directly. 
+  // Vite will replace this with the actual key string during 'npm run build'.
+  const apiKey = process.env.API_KEY;
   
-  if (!apiKey) {
-    console.error("API Key Search Failure. Checked: process.env.API_KEY, GOOGLE_API_KEY, window.API_KEY");
+  if (!apiKey || apiKey === "undefined") {
+    console.error("Critical Failure: API_KEY is not defined in the build environment.");
     throw new Error("MISSING_KEY");
   }
 

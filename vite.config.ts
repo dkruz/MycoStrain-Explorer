@@ -3,8 +3,11 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  // We remove the hard-coded 'define' for API_KEY to allow runtime discovery 
-  // of the key if it's injected by the hosting platform (e.g. AI Studio).
+  // We explicitly define process.env.API_KEY so Vite can replace it during build.
+  // This bridges the gap between the server environment and the static browser bundle.
+  define: {
+    'process.env.API_KEY': JSON.stringify(process.env.API_KEY || process.env.GOOGLE_API_KEY)
+  },
   server: {
     port: 8080,
     host: '0.0.0.0'
