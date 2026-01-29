@@ -1,0 +1,38 @@
+steps:
+  # Build the container image using the API key from Secret Manager
+  - name: 'gcr.io/cloud-builders/docker'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        docker build \
+          --build-arg API_KEY=$$MY_API_KEY \
+          -t gcr.io/$PROJECT_ID/mycostrain-explorer:$COMMIT_SHA .
+    secretEnv: ['MY_API_KEY']
+
+  # Push the image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/mycostrain-explorer:$COMMIT_SHA']
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'mycostrain-explorer'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/mycostrain-explorer:$COMMIT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+
+availableSecrets:
+  secretManager:
+    - versionName: projects/$PROJECT_ID/secrets/GOOGLE_API_KEY/versions/latest
+      env: 'MY_API_KEY'
+
+images:
+  - 'gcr.io/$PROJECT_ID/mycostrain-explorer:$COMMIT_SHA'

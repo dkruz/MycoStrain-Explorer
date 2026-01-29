@@ -2,12 +2,11 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult } from "../types";
 
 export const performMycoAnalysis = async (speciesName: string, focusArea: string = "USA National"): Promise<AnalysisResult> => {
-  // Use the environment variable directly. 
-  // Vite will replace this with the actual key string during 'npm run build'.
+  // Vite replaces this with the actual string at build time.
   const apiKey = process.env.API_KEY;
   
-  if (!apiKey || apiKey === "undefined") {
-    console.error("Critical Failure: API_KEY is not defined in the build environment.");
+  if (!apiKey || apiKey === "undefined" || apiKey === "") {
+    console.error("Build-time Error: API_KEY was not injected during the build process.");
     throw new Error("MISSING_KEY");
   }
 
