@@ -1,13 +1,15 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult } from "../types";
 
 export const performMycoAnalysis = async (speciesName: string, focusArea: string = "USA National"): Promise<AnalysisResult> => {
-  if (!process.env.API_KEY) {
+  // Ensure we check for both standard and common platform-specific environment variable names
+  const apiKey = (process.env.API_KEY || (process.env as any).GOOGLE_API_KEY);
+  
+  if (!apiKey) {
     throw new Error("MISSING_KEY");
   }
 
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey });
   
   const prompt = `
     Act as a Senior Computational Mycologist. 
@@ -25,7 +27,7 @@ export const performMycoAnalysis = async (speciesName: string, focusArea: string
     4. ENTOMOLOGICAL DATA: Describe specific insect vectors, symbionts, or mycophages for each regional clade.
     5. GENOMICS: Provide regional nucleotide diversity (pi) and 3-5 defining SNPs.
     
-    Return as structured JSON.
+    Return the analysis as a structured JSON object.
   `;
 
   const response = await ai.models.generateContent({
@@ -33,7 +35,8 @@ export const performMycoAnalysis = async (speciesName: string, focusArea: string
     contents: prompt,
     config: {
       tools: [{ googleSearch: {} }],
-      responseMimeType: "application/json",
+      // We avoid setting responseMimeType: "application/json" because when googleSearch is enabled,
+      // the model may return text along with grounding citations which can break strict JSON parsing.
       responseSchema: {
         type: Type.OBJECT,
         properties: {
@@ -68,13 +71,29 @@ export const performMycoAnalysis = async (speciesName: string, focusArea: string
     }
   });
 
-  const jsonStr = response.text || '{}';
+  const rawText = response.text || '';
+  
+  // As per instructions, when googleSearch is used, the text might not be pure JSON.
+  // We extract the JSON part robustly using a regex match.
+  let jsonStr = '';
+  const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    jsonStr = jsonMatch[0];
+  } else {
+    throw new Error("The model did not return a valid JSON structure. Output: " + rawText.substring(0, 100));
+  }
+
   const parsed = JSON.parse(jsonStr);
   
   const sources: any[] = [];
   const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
   chunks.forEach((chunk: any) => {
-    if (chunk.web) sources.push({ title: chunk.web.title, uri: chunk.web.uri });
+    if (chunk.web) {
+      sources.push({ 
+        title: chunk.web.title || 'Research Source', 
+        uri: chunk.web.uri 
+      });
+    }
   });
 
   return { ...parsed, sources };
