@@ -13,13 +13,13 @@ COPY . .
 
 # --- CRITICAL PART ---
 # These arguments are passed from Cloud Build during the build process
-ARG API_KEY
+ARG VITE_API_KEY
 # This command will fail the build if the key is empty, 
 # but succeed if any text exists. It won't print the key!
 RUN if [ -z "$API_KEY" ]; then echo "ERROR: API_KEY is empty"; exit 1; else echo "API_KEY is present"; fi
 # Vite requires variables to start with VITE_ to expose them to the client
 ENV VITE_API_KEY=$API_KEY
-ENV API_KEY=$API_KEY
+ENV VITE_API_KEY=$VITE_API_KEY
 
 # Build the app (this "bakes" the key into the files in /dist)
 RUN npm run build
@@ -41,6 +41,7 @@ EXPOSE 8080
 
 # Start the server
 CMD ["sirv", "dist", "--port", "8080", "--host"]
+
 
 
 
