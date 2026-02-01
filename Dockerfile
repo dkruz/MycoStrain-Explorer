@@ -14,6 +14,9 @@ COPY . .
 # --- CRITICAL PART ---
 # These arguments are passed from Cloud Build during the build process
 ARG API_KEY
+# This command will fail the build if the key is empty, 
+# but succeed if any text exists. It won't print the key!
+RUN if [ -z "$API_KEY" ]; then echo "ERROR: API_KEY is empty"; exit 1; else echo "API_KEY is present"; fi
 # Vite requires variables to start with VITE_ to expose them to the client
 ENV VITE_API_KEY=$API_KEY
 ENV API_KEY=$API_KEY
@@ -38,3 +41,4 @@ EXPOSE 8080
 
 # Start the server
 CMD ["sirv", "dist", "--port", "8080", "--host"]
+
