@@ -17,6 +17,19 @@ steps:
       '-t', 'gcr.io/$PROJECT_ID/my-app:$COMMIT_SHA',
       '.'
     ]
+    # Step 2: Push the image to the Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/my-app-image:$COMMIT_SHA']
+
+  # 3. Deploy the new image to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args: [
+      'run', 'deploy', 'mycostrainexplorer',
+      '--image', 'gcr.io/$PROJECT_ID/my-app-image:$COMMIT_SHA',
+      '--region', 'us-west1',
+      '--platform', 'managed'
+    ]
 substitutions:
   _API_KEY: "YOUR_DEFAULT_OR_DUMMY_VALUE" # The real value will come from the Trigger UI
 options:
