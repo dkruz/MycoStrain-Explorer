@@ -3,14 +3,22 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  // Vite replaces 'process.env.API_KEY' with the string value at build time.
+  // This is critical for static deployments where 'process' doesn't exist at runtime.
   define: {
-    // This trick injects the key into the code even if it doesn't start with VITE_
-    'process.env.API_KEY': JSON.stringify(process.env.API_KEY || process.env.GOOGLE_API_KEY),
-    'process.env.GOOGLE_API_KEY': JSON.stringify(process.env.API_KEY || process.env.GOOGLE_API_KEY),
+    'process.env.API_KEY': JSON.stringify(process.env.API_KEY || process.env.GOOGLE_API_KEY)
   },
   server: {
     port: 8080,
-    strictPort: true,
-    host: true,
+    host: '0.0.0.0'
   },
+  preview: {
+    port: 8080,
+    host: '0.0.0.0'
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    emptyOutDir: true
+  }
 });

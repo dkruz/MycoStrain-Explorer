@@ -1,40 +1,38 @@
 steps:
-  # STEP 0: DEBUG CHECK - This now uses automap to correctly see the key
-  - name: 'ubuntu'
-    script: |
-      if [ -z "$_API_KEY" ]; then
-        echo "ERROR: Trigger variable _API_KEY is not being passed!"
-        exit 1
-      else
-        echo "SUCCESS: Key is present (length: ${#_API_KEY} characters)"
-      fi
-
-  # STEP 1: BUILD
+  # Build the container image using the API key from Secret Manager
   - name: 'gcr.io/cloud-builders/docker'
-    args: [
-      'build',
-      '--build-arg', 'API_KEY=$(_API_KEY)', 
-      '-t', 'gcr.io/$PROJECT_ID/my-app:$COMMIT_SHA',
-      '.'
-    ]
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        docker build \
+          --build-arg API_KEY=$$MY_API_KEY \
+          -t gcr.io/$PROJECT_ID/mycostrain-explorer:$COMMIT_SHA .
+    secretEnv: ['MY_API_KEY']
 
-  # STEP 2: PUSH
+  # Push the image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/my-app:$COMMIT_SHA']
+    args: ['push', 'gcr.io/$PROJECT_ID/mycostrain-explorer:$COMMIT_SHA']
 
-  # STEP 3: DEPLOY
+  # Deploy to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'gcloud'
-    args: [
-      'run', 'deploy', 'mycostrainexplorer',
-      '--image', 'gcr.io/$PROJECT_ID/my-app:$COMMIT_SHA',
-      '--region', 'us-west1',
-      '--platform', 'managed'
-    ]
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'mycostrain-explorer'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/mycostrain-explorer:$COMMIT_SHA'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
 
-options:
-  automapSubstitutions: true  # This makes Step 0 work!
-  logging: CLOUD_LOGGING_ONLY
+availableSecrets:
+  secretManager:
+    - versionName: projects/$PROJECT_ID/secrets/GOOGLE_API_KEY/versions/latest
+      env: 'MY_API_KEY'
 
-substitutions:
-  _API_KEY: "placeholder"
+images:
+  - 'gcr.io/$PROJECT_ID/mycostrain-explorer:$COMMIT_SHA'
