@@ -34,5 +34,8 @@ availableSecrets:
     - versionName: projects/$PROJECT_ID/secrets/GOOGLE_API_KEY/versions/latest
       env: 'MY_API_KEY'
 
+options:
+  logging: CLOUD_LOGGING_ONLY
+
 images:
   - 'gcr.io/$PROJECT_ID/mycostrain-explorer:$COMMIT_SHA'
