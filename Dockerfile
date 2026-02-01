@@ -21,3 +21,4 @@ RUN npm install -g sirv-cli
 COPY --from=build /app/dist ./dist
 EXPOSE 8080
 CMD ["sirv", "dist", "--port", "8080", "--host", "0.0.0.0"]
+
