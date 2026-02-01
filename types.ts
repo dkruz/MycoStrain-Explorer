@@ -8,9 +8,12 @@ export interface Haplotype {
   similarity: number;
   substrate: string; 
   chemistry: string;
-  insectAssociations: string; // New: Ecological interactions with insects
-  regionalPrevalence: number; // 1-10 scale
-  parentHaplotypeId?: string; 
+  insectAssociations: string;
+  regionalPrevalence: number; 
+  parentHaplotypeId?: string;
+  divergenceTime: number; // Mya (Millions of years ago)
+  originCenter: string;   // Probable ancestral region
+  functionalTrait: string; // The ontological impact of the mutations
 }
 
 export interface GroundingSource {
@@ -27,4 +30,5 @@ export interface AnalysisResult {
   dossier: string;
   sources: GroundingSource[];
   focusArea: string;
+  ancestralOrigin: string; // The root origin of the species
 }

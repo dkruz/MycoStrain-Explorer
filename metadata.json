@@ -1,6 +1,6 @@
 {
   "name": "MycoStrain Explorer",
-  "description": "v4.1 Professional Dashboard: Advanced bioinformatics tool for elucidating intraspecific genetic diversity, SNP variation, and geographic distribution of fungal species.",
+  "description": "v4.2 Professional Dashboard: Advanced bioinformatics tool for elucidating phylogenetic origins, genetic drift, and functional ontologies of fungal species.",
   "requestFramePermissions": [
     "geolocation"
   ]
