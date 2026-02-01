@@ -12,11 +12,11 @@ steps:
   # STEP 1: BUILD
   - name: 'gcr.io/cloud-builders/docker'
     args: [
-      'build',
-      '--build-arg', 'API_KEY=$(_API_KEY)', 
-      '-t', 'gcr.io/$PROJECT_ID/my-app:$COMMIT_SHA',
-      '.'
-    ]
+  'build',
+  '--build-arg', 'VITE_API_KEY=$(_API_KEY)', # Change this
+  '-t', 'gcr.io/$PROJECT_ID/my-app:$COMMIT_SHA',
+  '.'
+]
     # Step 2: Push the image to the Registry
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/my-app-image:$COMMIT_SHA']
