@@ -5,8 +5,11 @@ import { AnalysisResult, Haplotype } from './types';
 import { StrainMap } from './components/StrainMap';
 import { NetworkGraph } from './components/NetworkGraph';
 import { EvolutionaryTimeline } from './components/Timeline';
+import { UserGuide } from './components/UserGuide';
 import { 
-  Dna, Search, Loader2, AlertCircle, Download, Target, Globe, FileText, Link, Scale, Activity, Sparkles, Shield, ListFilter, History, Zap
+  Dna, Search, Loader2, AlertCircle, Download, Target, Globe, 
+  FileText, Link, Scale, Activity, Sparkles, Shield, ListFilter, 
+  History, Zap, BookOpen
 } from 'lucide-react';
 
 const FOCUS_OPTIONS = ["National Survey", "Pacific Northwest (PNW)", "Appalachian Mountains", "Northeast Deciduous", "Southeast Coastal Plain", "Rocky Mountains / Alpine", "California Floristic", "Boreal Forest / Taiga"];
@@ -18,6 +21,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showGuide, setShowGuide] = useState(false);
 
   const uniqueSnps = useMemo(() => {
     if (!result) return [];
@@ -79,8 +83,17 @@ ${result.haplotypes.map(h => `[${h.id}] - ${h.region}: ${h.functionalTrait}`).jo
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">Origins & Ontologies v4.2</p>
             </div>
           </div>
+          
+          <button 
+            onClick={() => setShowGuide(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all"
+          >
+            <BookOpen size={16} /> Protocol Guide
+          </button>
         </div>
       </nav>
+
+      <UserGuide isOpen={showGuide} onClose={() => setShowGuide(false)} />
 
       <main className="max-w-7xl mx-auto px-6 py-10 flex-grow w-full">
         <section className="mb-12 text-center max-w-4xl mx-auto">
@@ -120,7 +133,6 @@ ${result.haplotypes.map(h => `[${h.id}] - ${h.region}: ${h.functionalTrait}`).jo
             </div>
 
             <StrainMap data={result.haplotypes} />
-            {/* Pass focusArea to the timeline component. */}
             <EvolutionaryTimeline data={result.haplotypes} focusArea={result.focusArea} />
             
             <div className="bg-slate-900 p-10 rounded-[3rem] shadow-2xl border border-slate-800 overflow-hidden">
