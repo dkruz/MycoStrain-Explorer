@@ -1,20 +1,21 @@
 steps:
+  # STEP 0: DEBUG CHECK - This will fail the build if the variable is empty
+  - name: 'ubuntu'
+    script: |
+      if [ -z "$_API_KEY" ] || [ "$_API_KEY" = "dummy_value_overridden_by_trigger" ]; then
+        echo "CRITICAL ERROR: The Trigger variable _API_KEY is empty or not set!"
+        exit 1
+      else
+        echo "SUCCESS: _API_KEY is found and has a value."
+      fi
+
+  # STEP 1: BUILD
   - name: 'gcr.io/cloud-builders/docker'
     args: [
       'build',
       '--build-arg', 'API_KEY=$(_API_KEY)', 
       '-t', 'gcr.io/$PROJECT_ID/my-app:$COMMIT_SHA',
       '.'
-    ]
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/my-app:$COMMIT_SHA']
-  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-    entrypoint: 'gcloud'
-    args: [
-      'run', 'deploy', 'mycostrainexplorer', 
-      '--image', 'gcr.io/$PROJECT_ID/my-app:$COMMIT_SHA',
-      '--region', 'us-west1',
-      '--platform', 'managed'
     ]
 substitutions:
   _API_KEY: "YOUR_DEFAULT_OR_DUMMY_VALUE" # The real value will come from the Trigger UI
