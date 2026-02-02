@@ -1,5 +1,5 @@
-
 import React from 'react';
+import { trackProtocolExport } from '../services/analytics';
 import { 
   X, Info, BookOpen, Target, Dna, Share2, History, Shield, Zap, 
   ChevronRight, Microscope, Globe, Activity, FileDown
@@ -14,45 +14,54 @@ export const UserGuide: React.FC<UserGuideProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   const exportToRTF = () => {
-    const rtfContent = `{\\rtf1\\ansi\\ansicpg1252\\deff0\\deflang1033{\\fonttbl{\\f0\\fnil\\fcharset0 Arial;}{\\f1\\fnil\\fcharset0 Courier New;}}
-{\\colortbl ;\\red0\\green75\\blue150;\\red100\\blue100\\green100;}
-\\viewkind4\\uc1\\pard\\f0\\fs32\\b MYCOSTRAIN EXPLORER: RESEARCHER PROTOCOL v4.2.0\\b0\\fs20\\par
-\\cf2 \\fs16 ORIGINS & ONTOLOGIES BIOINFORMATICS STANDARD\\cf0\\fs20\\par
+    // Advanced RTF construction with Color Table and Font Table
+    const rtfContent = `{\\rtf1\\ansi\\ansicpg1252\\deff0\\deflang1033
+{\\fonttbl{\\f0\\fnil\\fcharset0 Arial;}{\\f1\\fnil\\fcharset0 Courier New;}}
+{\\colortbl ;\\red79\\green70\\blue229;\\red30\\green41\\blue59;\\red100\\green116\\blue139;\\red16\\green185\\blue129;}
+\\viewkind4\\uc1\\pard\\cf1\\f0\\fs36\\b MYCOSTRAIN EXPLORER: RESEARCHER PROTOCOL v4.2.0\\b0\\par
+\\cf2\\fs20\\b Origins & Ontologies Bioinformatics Standard\\b0\\par
+\\cf3\\fs16 Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}\\cf0\\par
 \\par
-\\b 1. WORKFLOW EXECUTION\\b0\\par
-\\bullet  \\b 01. Species Input:\\b0  Enter full Latin binomial name (e.g., Cordyceps militaris) to initiate phylogenetic fetch.\\par
-\\bullet  \\b 02. Regional Focus:\\b0  Select geographic biome to constrain Deep Thinking simulation to regional datasets.\\par
-\\bullet  \\b 03. Origin Trace:\\b0  Trigger 32k-token synthesis and Google Search grounding.\\par
+\\cf1\\fs24\\b I. OPERATIONAL WORKFLOW\\b0\\par
+\\cf2\\fs20
+\\b 01. Species Definition:\\b0  Entry of the Latin binomial (Genus species) initiates the primary genomic fetch. Precision here determines the validity of the divergence timestamps.\\par
+\\b 02. Biome Constraint:\\b0  Selecting a focus area optimizes the Gemini 3 Pro reasoning engine to prioritize regional environmental selective pressures.\\par
+\\b 03. Origin Synthesis:\\b0  Triggers a 32,768-token Deep Thinking cycle to simulate ancestral drift patterns.\\par
 \\par
-\\b 2. DEEP THINKING MODE\\b0\\par
-This application utilizes Gemini 3 Pro with a 32,768-token thinking budget. It simulates biological drift patterns internally before output. Expect 10-15 seconds for phylogenetic logic consideration.\\par
+\\cf1\\fs24\\b II. THE ONTOLOGY FRAMEWORK (DECODING THE DATA)\\b0\\par
+\\cf2\\fs20
+The MycoStrain Explorer translates raw genetic drift into biological function. Users should interpret the following data points as follows:\\par
 \\par
-\\b 3. DATA INTERPRETATION: ONTOLOGIES & HAPLOTYPES\\b0\\par
+\\cf4\\b [Haplotype Identity]\\b0\\cf2  - Represents a unique genomic lineage. These are not just locations, but specific clusters of shared mutations (SNPs) defining a sub-population.\\par
 \\par
-\\b Haplotype (Variant):\\b0\\par
-A unique genetic signature belonging to a specific regional population. Represents a cluster of shared Single Nucleotide Polymorphisms (SNPs).\\par
+\\cf4\\b [Ontological Traits]\\b0\\cf2  - This is the "Functional Meaning." It elucidates the physical or biochemical result of the genetic drift. Examples include:\\par
+\\bullet  \\i Thermotolerance Shifts:\\i0  Adaptive mutations allowing survival in changing climates.\\par
+\\bullet  \\i Enzymatic Drift:\\i0  Changes in how the fungus decomposes specific substrates or interacts with insect hosts.\\par
+\\bullet  \\i Secondary Metabolites:\\i0  Shifts in chemical profiles (alkaloids, toxins) unique to that regional haplotype.\\par
 \\par
-\\b Ontological Trait (Functional Impact):\\b0\\par
-The biological meaning of the mutation. Translates raw genetic code into functional shifts (e.g., adaptive resistance, host-jumping, or thermotolerance).\\par
+\\cf4\\b [Phylogenetic Divergence (Mya)]\\b0\\cf2  - The temporal distance from the common ancestor. A 2.5 Mya divergence suggests an ancient regional isolation, while 0.1 Mya suggests recent anthropogenic spread or rapid niche adaptation.\\par
 \\par
-\\b Divergence (Mya):\\b0\\par
-Estimated millions of years since the branch point from the most recent common ancestor.\\par
+\\cf1\\fs24\\b III. DATA AUTHENTICITY & LIMITATIONS\\b0\\par
+\\cf2\\fs20
+\\bullet  \\b Grounding:\\b0  Data is synthesized using Google Search grounding for real-world research verification.\\par
+\\bullet  \\b Haplotypes:\\b0  Markers provided (e.g., SNP IDs) are representative of documented drift and should be cross-verified with MycoBank or NCBI for clinical use.\\par
 \\par
-\\b 4. AUTHENTICITY NOTICE\\b0\\par
-Results are synthesized via real-time search grounding and advanced reasoning. Cross-reference markers with NCBI GenBank or MycoBank for peer-reviewed publication.\\par
-\\par
-\\i Generated via MycoStrain Explorer v4.2 Protocol Engine.\\i0\\par
+\\cf3\\i --- End of Protocol --- \\par
+Generated via MycoStrain Explorer v4.2 Engine\\i0\\cf0
 }`;
 
     const blob = new Blob([rtfContent], { type: 'application/rtf' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = 'MycoStrain_Researcher_Protocol_v4.2.rtf';
+    link.download = 'MycoStrain_v4.2_Researcher_Protocol.rtf';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+
+    // Track export event
+    trackProtocolExport('RTF');
   };
 
   return (
@@ -75,7 +84,7 @@ Results are synthesized via real-time search grounding and advanced reasoning. C
             <button 
               onClick={exportToRTF}
               className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 hover:border-indigo-300 hover:text-indigo-600 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-sm"
-              title="Download as RTF"
+              title="Download as Professional RTF"
             >
               <FileDown size={16} /> Export RTF
             </button>

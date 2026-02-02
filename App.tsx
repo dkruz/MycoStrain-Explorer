@@ -1,6 +1,6 @@
-
 import React, { useState, useMemo } from 'react';
 import { performMycoAnalysis } from './services/geminiService';
+import { trackSearch, trackProtocolView } from './services/analytics';
 import { AnalysisResult, Haplotype } from './types';
 import { StrainMap } from './components/StrainMap';
 import { NetworkGraph } from './components/NetworkGraph';
@@ -39,11 +39,17 @@ export default function App() {
     try {
       const data = await performMycoAnalysis(species, focusArea);
       setResult(data);
+      trackSearch(species, focusArea);
     } catch (err: any) {
       setError(err.message || "Genomic Protocol Interrupted.");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleOpenGuide = () => {
+    setShowGuide(true);
+    trackProtocolView();
   };
 
   const handleExportDossier = () => {
@@ -85,7 +91,7 @@ ${result.haplotypes.map(h => `[${h.id}] - ${h.region}: ${h.functionalTrait}`).jo
           </div>
           
           <button 
-            onClick={() => setShowGuide(true)}
+            onClick={handleOpenGuide}
             className="flex items-center gap-2 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all"
           >
             <BookOpen size={16} /> Protocol Guide

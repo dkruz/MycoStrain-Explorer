@@ -1,35 +1,44 @@
-# Stage 1: Build environment
+# Stage 1: Build Stage (The "Kitchen")
 FROM node:20-slim AS build
 
+# Create app directory
 WORKDIR /app
 
-# Copy package files first for better caching
+# Install build dependencies
+# We copy package files first to leverage Docker's cache
 COPY package*.json ./
 RUN npm install
 
 # Copy the rest of the source code
 COPY . .
 
-# Injected at build time by Cloud Build
+# --- API KEY INJECTION ---
+# This matches your cloudbuild.yaml variable
 ARG API_KEY
-ENV API_KEY=$API_KEY
 
-# Build the static production assets
+# We set both names to ensure Vite "sees" it during the build
+ENV API_KEY=$API_KEY
+ENV VITE_API_KEY=$API_KEY
+ENV VITE_GEMINI_API_KEY=$API_KEY
+
+# Build the production assets (this creates the /dist folder)
 RUN npm run build
 
-# Stage 2: Production environment
+# Stage 2: Runtime Stage (The "Waiter")
 FROM node:20-slim
 
 WORKDIR /app
 
-# Install a lightweight static file server
+# Install the lightweight server
+# We do this in the second stage to keep the final image tiny
 RUN npm install -g sirv-cli
 
-# Copy only the compiled assets from the build stage
+# Only copy the compiled "dist" folder from the build stage
 COPY --from=build /app/dist ./dist
 
-# Cloud Run listens on port 8080 by default
+# Cloud Run's standard port
 EXPOSE 8080
 
-# Serve the 'dist' folder as a Single Page Application (SPA)
+# Serve the app
+# --single ensures that if a user refreshes a sub-page, it doesn't 404
 CMD ["sirv", "dist", "--host", "0.0.0.0", "--port", "8080", "--single"]
