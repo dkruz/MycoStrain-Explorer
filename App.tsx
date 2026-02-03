@@ -6,14 +6,15 @@ import { StrainMap } from './components/StrainMap';
 import { NetworkGraph } from './components/NetworkGraph';
 import { EvolutionaryTimeline } from './components/Timeline';
 import { UserGuide } from './components/UserGuide';
+import { CitizenScienceHub } from './components/CitizenScienceHub';
 import { 
   Dna, Search, Loader2, AlertCircle, Download, Target, Globe, 
   FileText, Link, Scale, Activity, Sparkles, Shield, ListFilter, 
-  History, Zap, BookOpen
+  History, Zap, BookOpen, Users
 } from 'lucide-react';
 
 const FOCUS_OPTIONS = ["National Survey", "Pacific Northwest (PNW)", "Appalachian Mountains", "Northeast Deciduous", "Southeast Coastal Plain", "Rocky Mountains / Alpine", "California Floristic", "Boreal Forest / Taiga"];
-const APP_VERSION = "v4.2";
+const APP_VERSION = "v4.2-CS";
 
 export default function App() {
   const [species, setSpecies] = useState('');
@@ -54,27 +55,97 @@ export default function App() {
 
   const handleExportDossier = () => {
     if (!result) return;
+    
+    const groundingRefs = result.sources.length > 0 
+      ? result.sources.map(s => `- ${s.title}\n  URL: ${s.uri}`).join('\n\n')
+      : "No external grounding references retrieved for this specific query. Please consult primary mycological databases like Index Fungorum or MycoBank.";
+
     const fullContent = `
-MYCOSTRAIN EXPLORER: v4.2 GENOMIC ORIGINS REPORT
-====================================================
+MYCOSTRAIN EXPLORER: v4.2 GENOMIC ORIGINS & FIELD RESEARCH DOSSIER
+==================================================================
 Species: ${result.speciesName}
 Ancestral Origin: ${result.ancestralOrigin}
 Focus Area: ${result.focusArea}
+Generation Date: ${new Date().toLocaleString()}
+Protocol Version: ${APP_VERSION}
 
-RESEARCH SUMMARY
-----------------
+I. EXECUTIVE RESEARCH SUMMARY
+-----------------------------
 ${result.dossier}
 
-ONTOLOGICAL TRAITS & HAPLOTYPES
--------------------------------
-${result.haplotypes.map(h => `[${h.id}] - ${h.region}: ${h.functionalTrait}`).join('\n')}
+II. COMPREHENSIVE WORKFLOW EXECUTION GUIDE
+------------------------------------------
+Follow these steps to interpret the synthesized digital model and transition to field research.
+
+STEP 01: GEOGRAPHIC DISTRIBUTION (MAP ANALYSIS)
+- Objective: Locate "Steel Silhouette" clusters within the focus area.
+- Procedure: Analyze the Similarity Index (95-100%). High-similarity nodes represent the core populations, while distal nodes represent recent adaptive drift.
+- Research Tip: Target boundaries between high and low similarity zones for potential hybridization evidence.
+
+STEP 02: MUTATIONAL NETWORK NAVIGATION
+- Objective: Visualize evolutionary pathways and genomic connectivity.
+- Procedure: Inspect the force-directed graph. Clusters indicate shared lineage, while isolated nodes suggest long-term geographic isolation (e.g., Alpine island populations).
+- Research Tip: Hover over nodes to identify "Metamorphotic Chemistry"—the specific metabolic shifts associated with that haplotype.
+
+STEP 03: PHYLOGENETIC SEQUENCING (TIMELINE)
+- Objective: Sequence the temporal emergence of the species.
+- Procedure: Read from left (Deep Ancestral) to right (Recent Adaptive). The Mya (Millions of years ago) index provides a scale for the divergence.
+- Research Tip: Branches older than 2.0 Mya often harbor cryptic species traits.
+
+STEP 04: GENOMIC DRIFT ONTOLOGIES (DATA GRID)
+- Objective: Precise SNP identification and functional mapping.
+- Procedure: Use the ontology table to cross-reference specific mutations (SNPs) across all 12 haplotypes.
+- Research Tip: Identify "Signature SNPs"—mutations present in only one regional cluster.
+
+STEP 05: EXECUTIVE ORIGIN DOSSIER SYNTHESIS
+- Objective: Deep-thinking narrative synthesis.
+- Procedure: Review the AI-generated origin dossier to understand the migration vectors (e.g., "Pleistocene Refugia Hypothesis").
+
+STEP 06: FIELD RESEARCH & CITIZEN SCIENCE HUB
+- Objective: Physical validation of the digital model.
+- Procedure: Activate one of the synthesized field missions below. Document all findings using the provided macro-photography protocols.
+
+III. EXPANDED CITIZEN SCIENCE MISSIONS & FIELD PROTOCOLS
+-------------------------------------------------------
+The following protocols have been generated to bridge the gap between AI-driven genomic modeling 
+and in-situ field validation. Researchers are encouraged to document findings according to 
+the specific validation strategies outlined below.
+
+${result.citizenScienceMissions.map((m, i) => `
+MISSION #${i + 1}: ${m.title}
+PRIORITY: ${m.priority}
+CONTEXT: ${m.description}
+ACTIONABLE PROTOCOL: 
+${m.action}
+`).join('\n')}
+
+IV. ONTOLOGICAL TRAITS & REGIONAL DRIFT (HAPLOTYPES)
+-----------------------------------------------------
+${result.haplotypes.map(h => `
+[${h.id}] ${h.region}
+- Divergence: ${h.divergenceTime} Mya Branch
+- Trait: ${h.functionalTrait}
+- Substrate: ${h.substrate}
+- Insect Associations: ${h.insectAssociations}
+- Chemistry: ${h.chemistry}
+- SNPs Identified: ${h.snps.join(', ')}
+`).join('\n')}
+
+V. GROUNDING REFERENCES & LITERATURE EVIDENCE
+---------------------------------------------
+The following sources were utilized to ground the genomic synthesis in existing research.
+
+${groundingRefs}
+
+------------------------------------------------------------------
+END OF PROTOCOL - MYCOSTRAIN EXPLORER ENGINE
     `.trim();
 
     const blob = new Blob([fullContent], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `MycoStrain_${result.speciesName.replace(/\s/g, '_')}_Origin_v4.2.txt`;
+    a.download = `MycoStrain_${result.speciesName.replace(/\s/g, '_')}_Research_Dossier.txt`;
     a.click();
   };
 
@@ -124,10 +195,11 @@ ${result.haplotypes.map(h => `[${h.id}] - ${h.region}: ${h.functionalTrait}`).jo
 
         {result && !loading && (
           <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8">
+            {/* Executive Stats Summary - Retained at top for immediate context */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
               {[
                 { label: "Ancestral Root", val: result.ancestralOrigin, icon: History },
-                { label: "Regional Est.", val: result.estimatedTotalHaplotypes, icon: Target },
+                { label: "Field Status", val: "Missions Ready", icon: Users },
                 { label: "Drift Index", val: result.nucleotideDiversity.toFixed(4), icon: Scale },
                 { label: "AI Protocol", val: "Thinking-32k", icon: Zap }
               ].map((stat, i) => (
@@ -138,9 +210,16 @@ ${result.haplotypes.map(h => `[${h.id}] - ${h.region}: ${h.functionalTrait}`).jo
               ))}
             </div>
 
+            {/* 1. Genomic Distribution & Ecological Map */}
             <StrainMap data={result.haplotypes} />
-            <EvolutionaryTimeline data={result.haplotypes} focusArea={result.focusArea} />
             
+            {/* 2. Niche-Driven Mutational Network */}
+            <NetworkGraph data={result.haplotypes} />
+
+            {/* 3. Phylogenetic Divergence Timeline */}
+            <EvolutionaryTimeline data={result.haplotypes} focusArea={result.focusArea} />
+
+            {/* 4. Genomic Drift Ontologies Table (Logical extension of the Timeline) */}
             <div className="bg-slate-900 p-10 rounded-[3rem] shadow-2xl border border-slate-800 overflow-hidden">
               <h3 className="text-2xl font-black text-white flex items-center gap-3 mb-8"><ListFilter className="text-indigo-400" /> Genomic Drift Ontologies</h3>
               <div className="overflow-x-auto custom-scrollbar pb-4">
@@ -171,18 +250,17 @@ ${result.haplotypes.map(h => `[${h.id}] - ${h.region}: ${h.functionalTrait}`).jo
               </div>
             </div>
 
-            <NetworkGraph data={result.haplotypes} />
-
+            {/* 5. Executive Origin Dossier */}
             <div className="grid lg:grid-cols-3 gap-10">
               <div className="lg:col-span-2">
-                <div className="bg-white p-12 rounded-[3rem] border border-slate-200 shadow-sm">
+                <div className="bg-white p-12 rounded-[3rem] border border-slate-200 shadow-sm h-full">
                   <div className="flex items-center gap-4 mb-8 pb-6 border-b border-slate-100">
                     <FileText className="text-indigo-600" />
                     <h3 className="text-2xl font-black uppercase text-slate-900 tracking-tight">Executive Origin Dossier</h3>
                   </div>
                   <p className="text-lg text-slate-800 border-l-4 border-indigo-200 pl-6 py-2 bg-indigo-50/20 mb-10">{result.dossier}</p>
                   <div className="space-y-6">
-                    {result.haplotypes.map(h => (
+                    {result.haplotypes.slice(0, 5).map(h => (
                       <div key={h.id} className="bg-slate-50 p-8 rounded-3xl border border-slate-100">
                         <div className="flex justify-between items-start mb-4">
                           <h4 className="font-black text-slate-900">{h.id} - {h.region}</h4>
@@ -191,6 +269,7 @@ ${result.haplotypes.map(h => `[${h.id}] - ${h.region}: ${h.functionalTrait}`).jo
                         <p className="text-xs text-slate-500 leading-relaxed"><span className="font-black text-slate-700 uppercase">Trait:</span> {h.functionalTrait}</p>
                       </div>
                     ))}
+                    <p className="text-center text-[10px] font-black text-slate-300 uppercase tracking-widest pt-4">Additional lineages detailed in full research export</p>
                   </div>
                 </div>
               </div>
@@ -200,22 +279,33 @@ ${result.haplotypes.map(h => `[${h.id}] - ${h.region}: ${h.functionalTrait}`).jo
                   <Download size={32} />
                   <div className="text-center">
                     <p className="text-xl">Download Data v4.2</p>
-                    <p className="text-[10px] text-slate-500 uppercase mt-1">Full Phylogenetic Analysis</p>
+                    <p className="text-[10px] text-slate-500 uppercase mt-1">Full Research Dossier</p>
                   </div>
                 </button>
                 <div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm">
                   <h4 className="font-black text-[10px] uppercase text-slate-400 mb-8 flex items-center gap-2"><Link size={14} className="text-indigo-400" /> Grounding Evidence</h4>
                   <div className="space-y-4">
-                    {result.sources.map((s, i) => (
+                    {result.sources.length > 0 ? result.sources.map((s, i) => (
                       <a key={i} href={s.uri} target="_blank" rel="noopener noreferrer" className="block p-4 rounded-2xl bg-slate-50 hover:bg-indigo-50 transition-colors">
                         <p className="font-bold text-slate-800 text-xs truncate">{s.title}</p>
                         <p className="text-[9px] text-slate-400 font-mono mt-1">{new URL(s.uri).hostname}</p>
                       </a>
-                    ))}
+                    )) : (
+                      <div className="p-4 text-center">
+                        <p className="text-[10px] font-black text-slate-400 uppercase">Searching references...</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* 6. Field Research & Citizen Science Hub (Now at the bottom as requested) */}
+            <CitizenScienceHub 
+              missions={result.citizenScienceMissions} 
+              speciesName={result.speciesName} 
+              onDownloadDossier={handleExportDossier}
+            />
           </div>
         )}
       </main>

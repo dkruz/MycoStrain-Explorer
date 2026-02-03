@@ -5,25 +5,27 @@ export const performMycoAnalysis = async (speciesName: string, focusArea: string
   const apiKey = process.env.API_KEY;
   
   if (!apiKey || apiKey === "undefined" || apiKey === "") {
-    throw new Error("BUILD_ERROR: The API_KEY was not correctly injected during the build process. Ensure that the --build-arg API_KEY=... is passed to your Docker build command.");
+    throw new Error("BUILD_ERROR: The API_KEY was not correctly injected during the build process.");
   }
 
-  // Use a fresh instance to ensure correct API key usage
   const ai = new GoogleGenAI({ apiKey });
   
   const prompt = `
-    Act as a Senior Computational Mycologist & Phylogenetics Expert. 
+    Act as a Senior Computational Mycologist & Citizen Science Coordinator. 
     Analyze the genomic distribution, evolutionary origins, and ontological traits of: "${speciesName}".
     Focus Area: ${focusArea}.
     
+    CRITICAL INSTRUCTION: You MUST use the googleSearch tool to find and cite actual phylogenetic studies, regional prevalence surveys, and peer-reviewed descriptions of this species. 
+    Your response must be grounded in real-world data to provide valid references for the researcher dossier.
+
     RESEARCH TASKS:
-    1. ORIGINS: Determine the probable ancestral origin of the species and describe its migration into the focus area.
-    2. HAPLOTYPES: Generate 12 distinct haplotypes representing regional genetic drift.
-    3. PHYLOGENETICS: For each haplotype, estimate the Divergence Time (in millions of years ago, Mya) from the most recent common ancestor.
-    4. ONTOLOGY: Describe the functional trait change caused by the regional SNPs (e.g., enhanced thermotolerance, specific enzyme secretion).
-    5. COORDINATES: Provide realistic continental USA coordinates (Latitude 25.0 to 48.0, Longitude -124.0 to -67.0).
+    1. ORIGINS: Determine ancestral origin and migration patterns based on known fossil or genomic records.
+    2. HAPLOTYPES: Generate 12 regional haplotypes with specific divergence times (Mya) and functional traits (e.g., adaptive mutations for specific substrates).
+    3. CITIZEN SCIENCE: Create 3 specific, highly detailed "Field Missions" for amateur mycologists. 
+       - Missions MUST include comprehensive validation strategies: exact substrates, associated micro-flora, and specific macro-photography angles.
+       - These details will be used in an expanded research dossier.
     
-    Return the response strictly as valid JSON according to the requested schema.
+    Return the response strictly as valid JSON.
   `;
 
   try {
@@ -65,47 +67,42 @@ export const performMycoAnalysis = async (speciesName: string, focusArea: string
                 },
                 required: ["id", "region", "snps", "lat", "lng", "similarity", "substrate", "chemistry", "insectAssociations", "regionalPrevalence", "divergenceTime", "originCenter", "functionalTrait"]
               }
+            },
+            citizenScienceMissions: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  title: { type: Type.STRING },
+                  description: { type: Type.STRING },
+                  priority: { type: Type.STRING, enum: ["High", "Medium", "Low"] },
+                  action: { type: Type.STRING }
+                },
+                required: ["title", "description", "priority", "action"]
+              }
             }
           },
-          required: ["speciesName", "haplotypes", "nucleotideDiversity", "estimatedTotalHaplotypes", "estimatedGlobalHaplotypes", "dossier", "focusArea", "ancestralOrigin"]
+          required: ["speciesName", "haplotypes", "nucleotideDiversity", "estimatedTotalHaplotypes", "estimatedGlobalHaplotypes", "dossier", "focusArea", "ancestralOrigin", "citizenScienceMissions"]
         }
       }
     });
 
     const text = response.text || '';
-    if (!text) throw new Error("The model returned an empty response.");
-
     const parsed = JSON.parse(text);
     
     const sources: any[] = [];
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
     chunks.forEach((chunk: any) => {
       if (chunk.web) {
-        sources.push({ 
-          title: chunk.web.title || 'Scientific Reference', 
-          uri: chunk.web.uri 
-        });
+        sources.push({ title: chunk.web.title || 'Scientific Reference', uri: chunk.web.uri });
       }
     });
 
+    // If no grounding chunks, try to extract from grounding metadata search queries or other parts if available
+    // But primarily we rely on the candidate's chunks.
+
     return { ...parsed, sources };
   } catch (error: any) {
-    console.error("Analysis Protocol Error:", error);
-    
-    if (error.message?.includes('404') || error.message?.includes('not found')) {
-      throw new Error("MODEL_ERROR: The requested model was not found. Please verify your API permissions.");
-    }
-
-    const isNetworkError = 
-      error.message?.toLowerCase().includes('load failed') || 
-      error.message?.toLowerCase().includes('failed to fetch') ||
-      error.name === 'TypeError' || 
-      error.message?.toLowerCase().includes('network');
-
-    if (isNetworkError) {
-      throw new Error("NETWORK_BLOCK: Connection to Google Gemini API failed. This is often caused by ad-blockers, browser extensions, or corporate firewalls blocking 'generativelanguage.googleapis.com'.");
-    }
-    
-    throw new Error(`ANALYSIS_FAILURE: ${error.message || 'An unexpected error occurred during genomic synthesis.'}`);
+    throw new Error(`ANALYSIS_FAILURE: ${error.message}`);
   }
 };

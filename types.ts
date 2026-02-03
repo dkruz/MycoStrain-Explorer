@@ -21,6 +21,13 @@ export interface GroundingSource {
   uri: string;
 }
 
+export interface CitizenScienceMission {
+  title: string;
+  description: string;
+  priority: 'High' | 'Medium' | 'Low';
+  action: string;
+}
+
 export interface AnalysisResult {
   speciesName: string;
   haplotypes: Haplotype[];
@@ -30,5 +37,6 @@ export interface AnalysisResult {
   dossier: string;
   sources: GroundingSource[];
   focusArea: string;
-  ancestralOrigin: string; // The root origin of the species
+  ancestralOrigin: string; 
+  citizenScienceMissions: CitizenScienceMission[];
 }
