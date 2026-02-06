@@ -11,9 +11,9 @@ export interface Haplotype {
   insectAssociations: string;
   regionalPrevalence: number; 
   parentHaplotypeId?: string;
-  divergenceTime: number; // Mya (Millions of years ago)
-  originCenter: string;   // Probable ancestral region
-  functionalTrait: string; // The ontological impact of the mutations
+  divergenceTime: number; 
+  originCenter: string;   
+  functionalTrait: string; 
 }
 
 export interface GroundingSource {
@@ -28,6 +28,18 @@ export interface CitizenScienceMission {
   action: string;
 }
 
+export interface ComponentTrust {
+  deterministicRatio: number; // 0-100
+  probabilisticRatio: number; // 0-100
+  confidenceScore: number;    // Overall 0-1
+}
+
+export interface TrustProfile {
+  network: ComponentTrust;
+  timeline: ComponentTrust;
+  dataTable: ComponentTrust;
+}
+
 export interface AnalysisResult {
   speciesName: string;
   haplotypes: Haplotype[];
@@ -39,4 +51,5 @@ export interface AnalysisResult {
   focusArea: string;
   ancestralOrigin: string; 
   citizenScienceMissions: CitizenScienceMission[];
+  trustProfile: TrustProfile;
 }

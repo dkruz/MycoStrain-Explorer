@@ -1,33 +1,38 @@
+
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { Haplotype } from '../types';
-import { ZoomIn, ZoomOut, RotateCcw, Bug, Target, Layers, Map as MapIcon, Loader2, TreeDeciduous, Globe, AlertCircle } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, Target, Layers, Map as MapIcon, Loader2, TreeDeciduous, Globe, MapPin } from 'lucide-react';
 
 interface StrainMapProps {
   data: Haplotype[];
-  speciesName?: string;
+  mode?: 'amateur' | 'professional';
+  onStatusChange?: (status: 'pending' | 'success' | 'blocked') => void;
 }
 
-export const StrainMap: React.FC<StrainMapProps> = ({ data, speciesName }) => {
+export const StrainMap: React.FC<StrainMapProps> = ({ data, mode = 'professional', onStatusChange }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
   const zoomRef = useRef<any>(null);
   
   const [selectedStrain, setSelectedStrain] = useState<Haplotype | null>(null);
   const [mapStatus, setMapStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [statesGeoData, setStatesGeoData] = useState<any>(null);
 
   const width = 1200;
   const height = 750;
-  const radiusScale = (d3 as any).scaleLinear().domain([95, 100]).range([15, 30]).clamp(true);
+
+  // Normalization helper: handles 0.98 vs 98
+  const normalizeSim = (val: number) => (val <= 1 ? val * 100 : val);
+  
+  const radiusScale = (d3 as any).scaleLinear()
+    .domain([0, 100])
+    .range([10, 32])
+    .clamp(true);
 
   const resetToHome = () => {
-    if (!svgRef.current || !zoomRef.current || !statesGeoData) return;
+    if (!svgRef.current || !zoomRef.current) return;
     const svg = (d3 as any).select(svgRef.current);
-    svg.transition().duration(1000).call(
-      zoomRef.current.transform, 
-      (d3 as any).zoomIdentity
-    );
+    svg.transition().duration(1000).call(zoomRef.current.transform, (d3 as any).zoomIdentity);
   };
 
   const handleZoom = (type: 'in' | 'out') => {
@@ -37,11 +42,11 @@ export const StrainMap: React.FC<StrainMapProps> = ({ data, speciesName }) => {
   };
 
   useEffect(() => {
+    let isMounted = true;
     if (!svgRef.current || !gRef.current) return;
     
     const svg = (d3 as any).select(svgRef.current);
     const g = (d3 as any).select(gRef.current);
-    
     g.selectAll("*").remove();
 
     const zoomBehavior = (d3 as any).zoom()
@@ -49,10 +54,10 @@ export const StrainMap: React.FC<StrainMapProps> = ({ data, speciesName }) => {
       .on("zoom", (event: any) => {
         g.attr("transform", event.transform);
         const k = event.transform.k;
-        g.selectAll(".node-dot").attr("r", (d: any) => radiusScale(d.similarity) / k);
+        g.selectAll(".node-dot").attr("r", (d: any) => radiusScale(normalizeSim(d.similarity)) / k);
         g.selectAll(".node-dot").attr("stroke-width", 2 / k);
-        g.selectAll(".node-glow").attr("r", (d: any) => (radiusScale(d.similarity) + 15) / k);
-        g.selectAll(".national-silhouette").attr("stroke-width", 3 / k);
+        g.selectAll(".state-border").attr("stroke-width", 0.5 / k);
+        g.selectAll(".national-border").attr("stroke-width", 2 / k);
       });
     
     svg.call(zoomBehavior);
@@ -60,66 +65,65 @@ export const StrainMap: React.FC<StrainMapProps> = ({ data, speciesName }) => {
 
     const drawMap = async () => {
       try {
-        setMapStatus('loading');
+        if (isMounted) {
+          setMapStatus('loading');
+          onStatusChange?.('pending');
+        }
+        
         const response = await fetch("https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json");
-        if (!response.ok) throw new Error("Basemap dataset inaccessible");
+        if (!response.ok) throw new Error("Map geometry fetch failed");
         const rawData = await response.json();
         
-        const continentalFeatures = rawData.features.filter((f: any) => 
-          !['AK', 'HI', 'PR', 'Alaska', 'Hawaii', 'Puerto Rico'].includes(f.properties.name)
+        if (!isMounted) return;
+
+        const continentalFeatures = (rawData.features || []).filter((f: any) => 
+          f.properties && !['AK', 'HI', 'PR', 'Alaska', 'Hawaii', 'Puerto Rico'].includes(f.properties.name)
         );
         const statesData = { ...rawData, features: continentalFeatures };
-        setStatesGeoData(statesData);
 
-        const projection = (d3 as any).geoMercator().fitExtent([[80, 80], [width - 80, height - 80]], statesData);
+        const projection = (d3 as any).geoMercator().fitExtent([[50, 50], [width - 50, height - 70]], statesData);
         const pathGenerator = (d3 as any).geoPath().projection(projection);
 
         const basemap = g.append("g").attr("class", "basemap");
-        
+
+        // Fills
         basemap.selectAll(".state-fill")
           .data(statesData.features)
           .enter()
           .append("path")
-          .attr("class", "state-fill")
           .attr("d", pathGenerator as any)
-          .attr("fill", "#0f172a")
-          .style("pointer-events", "none");
+          .attr("fill", mode === 'amateur' ? "#064e3b" : "#0f172a");
 
-        basemap.selectAll(".national-silhouette")
+        // Borders
+        basemap.selectAll(".state-border")
           .data(statesData.features)
           .enter()
           .append("path")
-          .attr("class", "national-silhouette")
           .attr("d", pathGenerator as any)
           .attr("fill", "transparent")
-          .attr("stroke", "#ffffff")
-          .attr("stroke-width", 3)
-          .attr("stroke-opacity", 1)
-          .style("vector-effect", "non-scaling-stroke")
-          .style("pointer-events", "none");
+          .attr("stroke", mode === 'amateur' ? "#059669" : "#334155")
+          .attr("stroke-width", 0.5);
 
-        setMapStatus('ready');
+        // National Boundary
+        basemap.append("path")
+          .datum(statesData)
+          .attr("d", pathGenerator as any)
+          .attr("fill", "transparent")
+          .attr("stroke", mode === 'amateur' ? "#10b981" : "#ffffff")
+          .attr("stroke-width", 2);
+
+        if (isMounted) {
+          setMapStatus('ready');
+          onStatusChange?.('success');
+        }
 
         if (data && data.length > 0) {
           const pointsLayer = g.append("g").attr("class", "nodes");
           
           const validData = data.filter(d => {
-            if (typeof d.lat !== 'number' || typeof d.lng !== 'number') return false;
-            const projected = projection([d.lng, d.lat]);
-            return projected && !isNaN(projected[0]) && !isNaN(projected[1]);
+            const pos = projection([d.lng, d.lat]);
+            return pos !== null && !isNaN(pos[0]) && !isNaN(pos[1]);
           });
-
-          pointsLayer.selectAll(".node-glow")
-            .data(validData)
-            .enter()
-            .append("circle")
-            .attr("class", "node-glow")
-            .attr("cx", (d: any) => projection([d.lng, d.lat])![0])
-            .attr("cy", (d: any) => projection([d.lng, d.lat])![1])
-            .attr("r", (d: any) => radiusScale(d.similarity) + 15)
-            .attr("fill", (d: any) => (d3 as any).interpolateViridis(d.similarity / 100))
-            .attr("fill-opacity", 0.4)
-            .style("pointer-events", "none");
 
           pointsLayer.selectAll(".node-dot")
             .data(validData)
@@ -128,143 +132,107 @@ export const StrainMap: React.FC<StrainMapProps> = ({ data, speciesName }) => {
             .attr("class", "node-dot")
             .attr("cx", (d: any) => projection([d.lng, d.lat])![0])
             .attr("cy", (d: any) => projection([d.lng, d.lat])![1])
-            .attr("r", (d: any) => radiusScale(d.similarity))
-            .attr("fill", (d: any) => (d3 as any).interpolateViridis(d.similarity / 100))
-            .attr("stroke", "#ffffff")
-            .attr("stroke-width", 2)
-            .attr("filter", "drop-shadow(0 0 15px rgba(0,0,0,0.8))")
-            .style("cursor", "pointer")
-            .on("mouseover", function(this: any, event: any, d: any) {
-               const k = (d3 as any).zoomTransform(svg.node()!).k;
-               (d3 as any).select(this).raise().transition().duration(200).attr("r", (radiusScale(d.similarity) * 2.5) / k);
-               setSelectedStrain(d);
+            .attr("r", (d: any) => radiusScale(normalizeSim(d.similarity)))
+            .attr("fill", (d: any) => {
+              const s = normalizeSim(d.similarity) / 100;
+              // Use Magma for professional mode - it's brighter at high similarity on dark backgrounds
+              return mode === 'amateur' ? (d3 as any).interpolateYlGnBu(s) : (d3 as any).interpolateMagma(s);
             })
-            .on("mouseout", function(this: any, event: any, d: any) {
-               const k = (d3 as any).zoomTransform(svg.node()!).k;
-               (d3 as any).select(this).transition().duration(200).attr("r", radiusScale(d.similarity) / k);
-            });
+            .attr("stroke", "#fff")
+            .attr("stroke-width", 2)
+            .style("cursor", "pointer")
+            .style("filter", "drop-shadow(0 0 10px rgba(0,0,0,0.6))")
+            .on("mouseover", (e: any, d: any) => setSelectedStrain(d));
 
-          if (validData.length > 0) {
-             const points = validData.map(d => projection([d.lng, d.lat]) as [number, number]);
-             const xExt = (d3 as any).extent(points, (p: any) => p[0]) as [number, number];
-             const yExt = (d3 as any).extent(points, (p: any) => p[1]) as [number, number];
-             const x = (xExt[0] + xExt[1]) / 2;
-             const y = (yExt[0] + yExt[1]) / 2;
-             const dx = xExt[1] - xExt[0];
-             const dy = yExt[1] - yExt[0];
-             const scale = Math.min(10, 0.75 / Math.max(dx / width, dy / height));
-             
-             svg.transition().duration(1500).call(
-               zoomBehavior.transform, 
-               (d3 as any).zoomIdentity.translate(width/2 - scale*x, height/2 - scale*y).scale(scale)
-             );
+          const points = validData.map(d => projection([d.lng, d.lat]) as [number, number]);
+          if (points.length > 0) {
+            const xExt = (d3 as any).extent(points, (p: [number, number]) => p[0]) as [number, number];
+            const yExt = (d3 as any).extent(points, (p: [number, number]) => p[1]) as [number, number];
+            const x = (xExt[0] + xExt[1]) / 2;
+            const y = (yExt[0] + yExt[1]) / 2;
+            const dx = (xExt[1] - xExt[0]) || 100;
+            const dy = (yExt[1] - yExt[0]) || 100;
+            const scale = Math.min(6, 0.75 / Math.max(dx / width, dy / height));
+            
+            svg.transition().duration(1200).call(
+              zoomBehavior.transform, 
+              (d3 as any).zoomIdentity.translate(width/2 - scale*x, height/2 - scale*y).scale(scale)
+            );
           }
         }
       } catch (err) {
-        console.error("Cartography Projection Failure v4.1:", err);
-        setMapStatus('error');
+        if (isMounted) {
+          setMapStatus('error');
+          onStatusChange?.('blocked');
+        }
       }
     };
-    
     drawMap();
-  }, [data]);
+    
+    return () => { 
+      isMounted = false;
+      if (svgRef.current) (d3 as any).select(svgRef.current).on(".zoom", null);
+    };
+  }, [data, mode]);
 
   return (
     <div className="bg-white p-8 rounded-[3.5rem] shadow-2xl border border-slate-200 overflow-hidden w-full col-span-full">
       <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6 px-4">
         <div>
           <h3 className="text-2xl font-black text-slate-900 flex items-center gap-3">
-            <MapIcon className="text-indigo-600" /> Genomic Distribution & Ecological Map
+            <MapIcon className={mode === 'amateur' ? 'text-emerald-600' : 'text-indigo-600'} /> 
+            {mode === 'amateur' ? 'Local Variety Map' : 'Genomic Distribution Map'}
           </h3>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">v4.1 ABSOLUTE CONTRAST | Steel Silhouette | Mercator Projection</p>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+            {mode === 'amateur' ? 'Regional cousins across the landscape' : 'v4.2 absolute phylogenetic contrast'}
+          </p>
         </div>
-        
-        <div className="flex items-center gap-5 bg-slate-50 px-8 py-4 rounded-3xl border border-slate-100">
-          <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest">Similarity Index</span>
-          <div className="flex h-3 gap-1">
-            {[95, 96, 97, 98, 99, 100].map(v => (
-               <div key={v} className="w-8 h-full rounded-full" style={{ background: (d3 as any).interpolateViridis(v/100) }}></div>
-            ))}
-          </div>
+        <div className="flex items-center gap-3 bg-slate-50 px-6 py-3 rounded-2xl border border-slate-100">
+          <Globe size={14} className="text-slate-400" />
+          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Projection: Continental Mercator</span>
         </div>
       </div>
 
       <div className="flex flex-col xl:flex-row gap-8">
-        <div className="relative flex-1 bg-slate-950 rounded-[3.5rem] min-h-[800px] flex items-center justify-center overflow-hidden group shadow-2xl ring-2 ring-slate-800">
-          
+        <div className="relative flex-1 bg-slate-950 rounded-[3.5rem] min-h-[600px] shadow-inner ring-4 ring-slate-900 overflow-hidden group">
           {mapStatus === 'loading' && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 bg-slate-950 z-50">
-               <Loader2 className="animate-spin text-indigo-400" size={48} />
-               <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest animate-pulse">Forging Steel Silhouette...</p>
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/90 z-50 backdrop-blur-md">
+              <Loader2 className="animate-spin text-indigo-400 mb-4" size={40} />
+              <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Re-rendering Genomic Baseline...</p>
             </div>
           )}
-
-          {mapStatus === 'error' && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 bg-slate-950 z-50 text-center p-10">
-               <AlertCircle className="text-red-500 mb-4" size={48} />
-               <p className="text-white font-black uppercase tracking-widest">Projection Protocol Failure</p>
-               <p className="text-slate-500 text-xs mt-2">Network timeout fetching GeoJSON silhouette.</p>
-            </div>
-          )}
-
-          <svg ref={svgRef} viewBox="0 0 1200 750" className="w-full h-auto cursor-move relative z-10 transition-opacity duration-700">
+          <svg ref={svgRef} viewBox="0 0 1200 750" className="w-full h-auto cursor-move">
             <g ref={gRef}></g>
           </svg>
-
-          <div className="absolute bottom-12 left-12 flex flex-col gap-4 opacity-0 group-hover:opacity-100 transition-all duration-300 z-20 scale-100 origin-bottom-left">
-            <button onClick={() => handleZoom('in')} className="p-5 bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl hover:bg-slate-800 active:scale-90 transition-all text-white hover:text-indigo-400"><ZoomIn size={24} /></button>
-            <button onClick={() => handleZoom('out')} className="p-5 bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl hover:bg-slate-800 active:scale-90 transition-all text-white hover:text-indigo-400"><ZoomOut size={24} /></button>
-            <button onClick={resetToHome} title="Fit US Silhouette" className="p-5 bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl hover:bg-slate-800 active:scale-90 transition-all text-white hover:text-indigo-400"><RotateCcw size={24} /></button>
+          <div className="absolute bottom-8 left-8 flex flex-col gap-3 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
+            <button onClick={() => handleZoom('in')} className="p-4 bg-slate-900/90 text-white rounded-2xl border border-slate-700 hover:bg-slate-800 shadow-xl"><ZoomIn size={20}/></button>
+            <button onClick={() => handleZoom('out')} className="p-4 bg-slate-900/90 text-white rounded-2xl border border-slate-700 hover:bg-slate-800 shadow-xl"><ZoomOut size={20}/></button>
+            <button onClick={resetToHome} className="p-4 bg-slate-900/90 text-white rounded-2xl border border-slate-700 hover:bg-slate-800 shadow-xl"><RotateCcw size={20}/></button>
           </div>
         </div>
 
-        <div className="xl:w-96 flex-shrink-0">
-          <div className={`h-full min-h-[600px] p-10 rounded-[3.5rem] border-2 transition-all duration-700 ${selectedStrain ? 'border-indigo-500 bg-white shadow-2xl transform translate-y-[-8px]' : 'border-dashed border-slate-200 bg-slate-50/50'}`}>
+        <div className="xl:w-80 flex-shrink-0">
+          <div className={`h-full min-h-[400px] p-8 rounded-[3rem] border-2 transition-all duration-500 ${selectedStrain ? 'border-indigo-500 bg-white shadow-xl' : 'border-dashed border-slate-200 bg-slate-50/50'}`}>
             {!selectedStrain ? (
-              <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 py-12">
-                <Globe className="w-16 h-16 mb-8 opacity-10 animate-pulse" />
-                <p className="text-[12px] font-black uppercase tracking-[0.3em]">Genomic Inspector</p>
-                <p className="text-[10px] mt-5 leading-relaxed max-w-[220px] mx-auto opacity-70">Boundaries are now locked as a single steel silhouette. State noise has been eliminated for maximum visual clarity.</p>
+              <div className="h-full flex flex-col items-center justify-center text-center py-12 text-slate-400">
+                <MapPin className="mx-auto mb-6 opacity-10 animate-bounce" size={48} />
+                <p className="text-[12px] font-black uppercase tracking-[0.2em] mb-4">Select Node</p>
+                <p className="text-[10px] leading-relaxed max-w-[180px] mx-auto opacity-70">Interactive boundaries are calibrated for {mode} mode. Select any node to inspect genetic properties.</p>
               </div>
             ) : (
-              <div className="animate-in fade-in slide-in-from-right-10 duration-700 space-y-10">
+              <div className="animate-in fade-in slide-in-from-right-4 space-y-6">
                 <div className="flex items-center justify-between">
-                  <span className="px-5 py-2.5 bg-indigo-600 text-white rounded-2xl font-mono text-[13px] font-black shadow-lg">{selectedStrain.id}</span>
-                  <div className="bg-indigo-50 px-5 py-2 rounded-full border border-indigo-100">
-                     <span className="text-[11px] font-black text-indigo-700 uppercase tracking-widest">{selectedStrain.similarity}% Drift</span>
-                  </div>
+                  <span className={`px-4 py-1.5 rounded-xl text-white font-mono font-black text-xs ${mode === 'amateur' ? 'bg-emerald-600' : 'bg-indigo-600'}`}>{selectedStrain.id}</span>
+                  <p className="text-sm font-black text-slate-900">{normalizeSim(selectedStrain.similarity).toFixed(1)}%</p>
                 </div>
-
-                <div className="space-y-2">
-                  <h4 className="font-black text-slate-900 text-3xl leading-none tracking-tighter">{selectedStrain.region}</h4>
-                  <p className="text-[10px] font-mono text-slate-400 uppercase tracking-tighter">PROTOCOL v4.1</p>
+                <h4 className="font-black text-2xl text-slate-900 tracking-tight">{selectedStrain.region}</h4>
+                <div className={`p-6 rounded-[2rem] text-white shadow-lg ${mode === 'amateur' ? 'bg-emerald-700' : 'bg-slate-900'}`}>
+                  <p className="text-[10px] font-black uppercase tracking-widest mb-3 opacity-60">{mode === 'amateur' ? 'Usual Home' : 'Substrate Index'}</p>
+                  <p className="text-sm font-bold leading-relaxed">{selectedStrain.substrate}</p>
                 </div>
-                
-                <div className="space-y-8">
-                  <div className="bg-indigo-600 p-8 rounded-[2.5rem] border border-indigo-700 shadow-xl relative overflow-hidden group">
-                    <TreeDeciduous className="absolute top-0 right-0 text-white/10 -mt-4 -mr-4" size={90} />
-                    <p className="text-[10px] font-black text-indigo-200 uppercase mb-4 flex items-center gap-2 tracking-[0.25em] relative z-10"><Target size={18}/> Primary Host</p>
-                    <p className="text-[16px] text-white font-black leading-relaxed relative z-10">{selectedStrain.substrate}</p>
-                  </div>
-
-                  <div className="bg-slate-900 p-8 rounded-[2.5rem] border border-slate-800 shadow-2xl relative overflow-hidden group">
-                    <Bug className="absolute top-0 right-0 text-white/5 -mt-4 -mr-4 rotate-12" size={90} />
-                    <p className="text-[10px] font-black text-indigo-400 uppercase mb-4 flex items-center gap-2 tracking-[0.25em] relative z-10"><Bug size={18}/> Entomological Associate</p>
-                    <p className="text-[14px] text-white leading-relaxed font-semibold italic relative z-10 opacity-95">{selectedStrain.insectAssociations}</p>
-                  </div>
-
-                  <div className="pt-8 border-t border-slate-100">
-                    <p className="text-[11px] font-black text-slate-500 uppercase mb-4 flex items-center gap-2 tracking-[0.25em]"><Layers size={18}/> Variant Markers (SNPs)</p>
-                    <div className="flex flex-wrap gap-2.5">
-                      {selectedStrain.snps.map((s, i) => (
-                        <span key={i} className="px-4 py-2 bg-slate-50 border border-slate-200 text-indigo-900 rounded-xl text-[11px] font-mono font-black shadow-inner">{s}</span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-8 border-t border-slate-50 flex items-center justify-between opacity-50">
-                   <p className="text-[10px] text-slate-400 font-mono uppercase tracking-widest">COORDS: {selectedStrain.lat.toFixed(4)}, {selectedStrain.lng.toFixed(4)}</p>
+                <div className="space-y-3 pt-2">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2"><Layers size={14}/> {mode === 'amateur' ? 'What to Look For' : 'Functional Ontology'}</p>
+                  <p className="text-xs text-slate-600 italic leading-relaxed border-l-2 border-slate-100 pl-4">{selectedStrain.functionalTrait}</p>
                 </div>
               </div>
             )}

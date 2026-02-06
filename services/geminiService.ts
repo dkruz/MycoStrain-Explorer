@@ -1,7 +1,12 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult } from "../types";
 
-export const performMycoAnalysis = async (speciesName: string, focusArea: string = "USA National"): Promise<AnalysisResult> => {
+export const performMycoAnalysis = async (
+  speciesName: string, 
+  focusArea: string = "USA National", 
+  mode: 'amateur' | 'professional' = 'professional'
+): Promise<AnalysisResult> => {
   const apiKey = process.env.API_KEY;
   
   if (!apiKey || apiKey === "undefined" || apiKey === "") {
@@ -10,28 +15,30 @@ export const performMycoAnalysis = async (speciesName: string, focusArea: string
 
   const ai = new GoogleGenAI({ apiKey });
   
-  const prompt = `
-    Act as a Senior Computational Mycologist & Citizen Science Coordinator. 
-    Analyze the genomic distribution, evolutionary origins, and ontological traits of: "${speciesName}".
+  const basePrompt = `
+    Act as a Senior Computational Mycologist. Analyze: "${speciesName}".
     Focus Area: ${focusArea}.
-    
-    CRITICAL INSTRUCTION: You MUST use the googleSearch tool to find and cite actual phylogenetic studies, regional prevalence surveys, and peer-reviewed descriptions of this species. 
-    Your response must be grounded in real-world data to provide valid references for the researcher dossier.
+    Mode: ${mode}.
 
-    RESEARCH TASKS:
-    1. ORIGINS: Determine ancestral origin and migration patterns based on known fossil or genomic records.
-    2. HAPLOTYPES: Generate 12 regional haplotypes with specific divergence times (Mya) and functional traits (e.g., adaptive mutations for specific substrates).
-    3. CITIZEN SCIENCE: Create 3 specific, highly detailed "Field Missions" for amateur mycologists. 
-       - Missions MUST include comprehensive validation strategies: exact substrates, associated micro-flora, and specific macro-photography angles.
-       - These details will be used in an expanded research dossier.
-    
-    Return the response strictly as valid JSON.
+    CRITICAL TRUST PROTOCOL:
+    You must use the googleSearch tool to find established scientific records. 
+    In your response, you must quantify "Data Provenance":
+    - DETERMINISTIC DATA: Facts found directly in search results (taxonomic records, specific lat/lng from studies, verified host trees).
+    - PROBABILISTIC DATA: Hypothesized inferences where data is missing (simulated SNP sequences, inferred divergence times, projected regional prevalence).
+
+    TASKS:
+    1. Origin/Migration analysis.
+    2. 12 Haplotypes with SNP markers.
+    3. 3 Citizen Science Missions.
+    4. Provide a 'trustProfile' quantifying the ratio of Deterministic vs Probabilistic info for the Network, Timeline, and Data Table based on your search success.
+
+    Return valid JSON.
   `;
 
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: prompt,
+      contents: basePrompt,
       config: {
         thinkingConfig: { thinkingBudget: 32768 },
         tools: [{ googleSearch: {} }],
@@ -80,16 +87,43 @@ export const performMycoAnalysis = async (speciesName: string, focusArea: string
                 },
                 required: ["title", "description", "priority", "action"]
               }
+            },
+            trustProfile: {
+              type: Type.OBJECT,
+              properties: {
+                network: {
+                  type: Type.OBJECT,
+                  properties: {
+                    deterministicRatio: { type: Type.NUMBER },
+                    probabilisticRatio: { type: Type.NUMBER },
+                    confidenceScore: { type: Type.NUMBER }
+                  }
+                },
+                timeline: {
+                  type: Type.OBJECT,
+                  properties: {
+                    deterministicRatio: { type: Type.NUMBER },
+                    probabilisticRatio: { type: Type.NUMBER },
+                    confidenceScore: { type: Type.NUMBER }
+                  }
+                },
+                dataTable: {
+                  type: Type.OBJECT,
+                  properties: {
+                    deterministicRatio: { type: Type.NUMBER },
+                    probabilisticRatio: { type: Type.NUMBER },
+                    confidenceScore: { type: Type.NUMBER }
+                  }
+                }
+              }
             }
           },
-          required: ["speciesName", "haplotypes", "nucleotideDiversity", "estimatedTotalHaplotypes", "estimatedGlobalHaplotypes", "dossier", "focusArea", "ancestralOrigin", "citizenScienceMissions"]
+          required: ["speciesName", "haplotypes", "nucleotideDiversity", "estimatedTotalHaplotypes", "estimatedGlobalHaplotypes", "dossier", "focusArea", "ancestralOrigin", "citizenScienceMissions", "trustProfile"]
         }
       }
     });
 
-    const text = response.text || '';
-    const parsed = JSON.parse(text);
-    
+    const parsed = JSON.parse(response.text || '{}');
     const sources: any[] = [];
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
     chunks.forEach((chunk: any) => {
@@ -97,9 +131,6 @@ export const performMycoAnalysis = async (speciesName: string, focusArea: string
         sources.push({ title: chunk.web.title || 'Scientific Reference', uri: chunk.web.uri });
       }
     });
-
-    // If no grounding chunks, try to extract from grounding metadata search queries or other parts if available
-    // But primarily we rely on the candidate's chunks.
 
     return { ...parsed, sources };
   } catch (error: any) {
