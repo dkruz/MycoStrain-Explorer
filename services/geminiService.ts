@@ -7,10 +7,11 @@ export const performMycoAnalysis = async (
   focusArea: string = "USA National", 
   mode: 'amateur' | 'professional' = 'professional'
 ): Promise<AnalysisResult> => {
+  // Use process.env.API_KEY which is defined in vite.config.ts
   const apiKey = process.env.API_KEY;
   
-  if (!apiKey || apiKey === "undefined" || apiKey === "") {
-    throw new Error("BUILD_ERROR: The API_KEY was not correctly injected during the build process.");
+  if (!apiKey || apiKey === "undefined" || apiKey === "" || apiKey === "null") {
+    throw new Error("BUILD_INTEGRITY_FAILURE: The API_KEY environment variable was missing during the Vercel build process. Please add 'API_KEY' to your Vercel Project Settings and trigger a manual Redeploy.");
   }
 
   const ai = new GoogleGenAI({ apiKey });

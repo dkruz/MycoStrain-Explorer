@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { performMycoAnalysis } from './services/geminiService';
 import { trackSearch, trackProtocolView } from './services/analytics';
 import { AnalysisResult, Haplotype } from './types';
@@ -14,7 +14,7 @@ import {
   Dna, Search, Loader2, AlertCircle, Download, Target, Globe, 
   FileText, Link, Scale, Activity, Sparkles, Shield, ListFilter, 
   History, Zap, BookOpen, Users, ShieldAlert, WifiOff, ExternalLink,
-  Wifi, Microscope, Binoculars
+  Wifi, Microscope, Binoculars, RefreshCw, XCircle, ShieldCheck, Key
 } from 'lucide-react';
 
 const FOCUS_OPTIONS = ["National Survey", "Pacific Northwest (PNW)", "Appalachian Mountains", "Northeast Deciduous", "Southeast Coastal Plain", "Rocky Mountains / Alpine", "California Floristic", "Boreal Forest / Taiga"];
@@ -30,7 +30,16 @@ export default function App() {
   const [showConsole, setShowConsole] = useState(false);
   const [viewMode, setViewMode] = useState<'amateur' | 'professional'>('professional');
 
-  const [ledger, setLedger] = useState({ gemini: 'idle' as ResourceStatus, search: 'idle' as ResourceStatus, basemap: 'idle' as ResourceStatus, cdn: 'success' as ResourceStatus });
+  // Check if API key is present at runtime (baked in at build time)
+  const isKeyLoaded = !!(process.env.API_KEY && process.env.API_KEY !== "undefined");
+
+  const [ledger, setLedger] = useState({ 
+    gemini: isKeyLoaded ? 'idle' : 'blocked' as ResourceStatus, 
+    search: 'idle' as ResourceStatus, 
+    basemap: 'idle' as ResourceStatus, 
+    cdn: 'success' as ResourceStatus 
+  });
+
   const resources = [
     { id: '1', name: 'Phylogenetic Intel', url: 'generativelanguage.googleapis.com', status: ledger.gemini, category: 'API' as const },
     { id: '2', name: 'Grounding Crawl', url: 'google.com/search', status: ledger.search, category: 'Data' as const },
@@ -48,73 +57,56 @@ export default function App() {
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!species.trim()) return;
-    setLoading(true); setError(null);
+    
+    if (!isKeyLoaded) {
+      setError("BUILD_INTEGRITY_FAILURE: No API_KEY detected. For Vercel deployments, ensure the 'API_KEY' environment variable is set in the Project Settings before building.");
+      return;
+    }
+
+    setLoading(true); 
+    setError(null);
+    setResult(null);
     setLedger(prev => ({ ...prev, gemini: 'pending', search: 'pending' }));
+    
     try {
       const data = await performMycoAnalysis(species, focusArea, viewMode);
       setResult(data);
       setLedger(prev => ({ ...prev, gemini: 'success', search: 'success' }));
       trackSearch(species, focusArea);
     } catch (err: any) {
-      setError(err.message || "Protocol Interrupted.");
+      console.error("Analysis Error:", err);
+      setError(err.message || "Protocol Interrupted. Please check your network connection.");
       setLedger(prev => ({ ...prev, gemini: 'blocked', search: 'blocked' }));
-    } finally { setLoading(false); }
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const handleExportDossier = () => {
     if (!result) return;
-    
     const timestamp = new Date().toLocaleString();
     const isPro = viewMode === 'professional';
-    
-    // Constructing the detailed report content
     let fullContent = `========================================================\n`;
     fullContent += `MYCOSTRAIN EXPLORER: ${viewMode.toUpperCase()} DOSSIER\n`;
     fullContent += `========================================================\n\n`;
-    
-    fullContent += `[GENERAL METADATA]\n`;
-    fullContent += `Species: ${result.speciesName}\n`;
-    fullContent += `Mode: ${isPro ? 'Professional Mycologist' : 'Nature Enthusiast'}\n`;
-    fullContent += `Focus Area: ${result.focusArea}\n`;
-    fullContent += `Timestamp: ${timestamp}\n`;
-    fullContent += `Protocol Version: ${APP_VERSION}\n\n`;
-
-    fullContent += `[VITAL STATISTICS]\n`;
-    fullContent += `Nucleotide Diversity (π): ${result.nucleotideDiversity.toFixed(6)}\n`;
-    fullContent += `Estimated Regional Haplotypes: ${result.estimatedTotalHaplotypes}\n`;
-    fullContent += `Estimated Global Haplotypes: ${result.estimatedGlobalHaplotypes}\n`;
-    fullContent += `Ancestral Center of Origin: ${result.ancestralOrigin}\n\n`;
-
-    fullContent += `[DATA PROVENANCE TRUST PROFILE]\n`;
-    fullContent += `Network Confidence: ${result.trustProfile.network.deterministicRatio}% Deterministic / ${result.trustProfile.network.probabilisticRatio}% Probabilistic\n`;
-    fullContent += `Timeline Accuracy: ${result.trustProfile.timeline.deterministicRatio}% Deterministic / ${result.trustProfile.timeline.probabilisticRatio}% Probabilistic\n`;
-    fullContent += `DataTable Veracity: ${result.trustProfile.dataTable.deterministicRatio}% Deterministic / ${result.trustProfile.dataTable.probabilisticRatio}% Probabilistic\n\n`;
-
-    fullContent += `[RESEARCH SUMMARY]\n`;
-    fullContent += `--------------------------------------------------------\n`;
-    fullContent += `${result.dossier}\n`;
-    fullContent += `--------------------------------------------------------\n\n`;
-
-    fullContent += `[GENOMIC HAPLOTYPE REGISTRY]\n`;
-    fullContent += `ID\tRegion\tSimilarity\tAge (Mya)\tFunctional Trait\tSNP Markers\n`;
+    fullContent += `[GENERAL METADATA]\nSpecies: ${result.speciesName}\nMode: ${isPro ? 'Professional Mycologist' : 'Nature Enthusiast'}\nFocus Area: ${result.focusArea}\nTimestamp: ${timestamp}\nProtocol Version: ${APP_VERSION}\n\n`;
+    fullContent += `[VITAL STATISTICS]\nNucleotide Diversity (π): ${result.nucleotideDiversity.toFixed(6)}\nEstimated Regional Haplotypes: ${result.estimatedTotalHaplotypes}\nEstimated Global Haplotypes: ${result.estimatedGlobalHaplotypes}\nAncestral Center of Origin: ${result.ancestralOrigin}\n\n`;
+    fullContent += `[DATA PROVENANCE TRUST PROFILE]\nNetwork Confidence: ${result.trustProfile.network.deterministicRatio}% Deterministic / ${result.trustProfile.network.probabilisticRatio}% Probabilistic\nTimeline Accuracy: ${result.trustProfile.timeline.deterministicRatio}% Deterministic / ${result.trustProfile.timeline.probabilisticRatio}% Probabilistic\nDataTable Veracity: ${result.trustProfile.dataTable.deterministicRatio}% Deterministic / ${result.trustProfile.dataTable.probabilisticRatio}% Probabilistic\n\n`;
+    fullContent += `[RESEARCH SUMMARY]\n--------------------------------------------------------\n${result.dossier}\n--------------------------------------------------------\n\n`;
+    fullContent += `[GENOMIC HAPLOTYPE REGISTRY]\nID\tRegion\tSimilarity\tAge (Mya)\tFunctional Trait\tSNP Markers\n`;
     result.haplotypes.forEach(h => {
       fullContent += `${h.id}\t${h.region}\t${h.similarity}%\t${h.divergenceTime}\t${h.functionalTrait}\t[${h.snps.join(', ')}]\n`;
     });
     fullContent += `\n`;
 
-    // Only include missions in Enthusiast report
     if (!isPro && result.citizenScienceMissions && result.citizenScienceMissions.length > 0) {
       fullContent += `[ADVENTURE & FIELD MISSIONS]\n`;
-      fullContent += `The following activities are suggested for field validation and local engagement:\n`;
       result.citizenScienceMissions.forEach((m, idx) => {
-        fullContent += `\n${idx + 1}. ${m.title.toUpperCase()} [PRIORITY: ${m.priority.toUpperCase()}]\n`;
-        fullContent += `   Mission: ${m.action}\n`;
-        fullContent += `   Context: ${m.description}\n`;
+        fullContent += `\n${idx + 1}. ${m.title.toUpperCase()} [PRIORITY: ${m.priority.toUpperCase()}]\nMission: ${m.action}\nContext: ${m.description}\n`;
       });
       fullContent += `\n`;
     }
 
-    // Only include grounding sources in Mycologist report
     if (isPro && result.sources.length > 0) {
       fullContent += `[GROUNDING EVIDENCE SOURCES]\n`;
       result.sources.forEach((s, idx) => {
@@ -124,7 +116,6 @@ export default function App() {
     }
 
     fullContent += `[END OF DOSSIER]`;
-
     const blob = new Blob([fullContent], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -151,7 +142,7 @@ export default function App() {
               <button onClick={() => setViewMode('professional')} className={`flex items-center gap-2 px-4 py-1.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${viewMode === 'professional' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}><Microscope size={14} /> Mycologist</button>
             </div>
             <div className="flex items-center gap-3">
-              <button onClick={() => setShowConsole(!showConsole)} className={`p-2.5 rounded-xl transition-all ${showConsole ? 'bg-slate-900 text-white shadow-lg' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}><Wifi size={18} /></button>
+              <button onClick={() => setShowConsole(!showConsole)} className={`p-2.5 rounded-xl transition-all ${showConsole ? 'bg-slate-900 text-white shadow-lg' : (isKeyLoaded ? 'bg-slate-100 text-slate-500 hover:bg-slate-200' : 'bg-amber-100 text-amber-600 ring-2 ring-amber-400 animate-pulse')}`}><Wifi size={18} /></button>
               <button onClick={() => setShowGuide(true)} className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition-all"><BookOpen size={18} /></button>
             </div>
           </div>
@@ -162,6 +153,16 @@ export default function App() {
       <NetworkConsole resources={resources} isOpen={showConsole} onClose={() => setShowConsole(false)} />
 
       <main className="max-w-7xl mx-auto px-6 py-10 flex-grow w-full transition-all duration-300">
+        {!isKeyLoaded && (
+          <div className="max-w-4xl mx-auto mb-10 bg-amber-50 border-2 border-amber-200 p-6 rounded-[2rem] flex items-center gap-6 shadow-xl shadow-amber-100/50">
+            <div className="p-4 bg-amber-100 text-amber-600 rounded-2xl"><Key size={28} /></div>
+            <div>
+              <p className="text-sm font-black text-amber-900 uppercase tracking-widest mb-1">Deployment Alert: API Key Missing</p>
+              <p className="text-xs text-amber-700 font-medium leading-relaxed">This build was initialized without a <code>GOOGLE_API_KEY</code>. Remote users will not be able to perform analyses. Set the environment variable in your Vercel or Cloud Run dashboard and redeploy.</p>
+            </div>
+          </div>
+        )}
+
         <section className="mb-12 text-center max-w-4xl mx-auto">
           <h2 className="text-5xl font-black text-slate-900 mb-4 tracking-tighter">{viewMode === 'amateur' ? 'Explore Local Varieties' : 'Phylogenetic Origin Tracking'}</h2>
           <p className="text-slate-500 text-lg font-medium mb-10 max-w-2xl mx-auto">{viewMode === 'amateur' ? 'Learn about where your favorite mushrooms come from and how they have changed over time.' : 'Computational synthesis of genetic divergence and ancestral migration vectors using deep reasoning.'}</p>
@@ -173,6 +174,28 @@ export default function App() {
             </form>
           </div>
         </section>
+
+        {error && (
+          <div className="max-w-3xl mx-auto mb-12 animate-in zoom-in-95 duration-300">
+            <div className="bg-white/40 backdrop-blur-xl border-2 border-red-200 rounded-[2.5rem] p-10 flex flex-col md:flex-row items-center gap-8 shadow-2xl shadow-red-100">
+              <div className="p-6 bg-red-100 text-red-600 rounded-3xl shadow-inner">
+                <AlertCircle size={48} />
+              </div>
+              <div className="flex-1 text-center md:text-left">
+                <h3 className="text-2xl font-black text-slate-900 mb-2">Protocol Interrupted</h3>
+                <p className="text-sm font-medium text-slate-600 leading-relaxed mb-6">{error}</p>
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
+                  <button onClick={() => handleSearch()} className="px-6 py-3 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-slate-800 transition-colors">
+                    <RefreshCw size={14} /> Retry Protocol
+                  </button>
+                  <button onClick={() => setError(null)} className="px-6 py-3 bg-white border border-slate-200 text-slate-500 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-colors">
+                    Clear Error
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {result && !loading && (
           <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8">
