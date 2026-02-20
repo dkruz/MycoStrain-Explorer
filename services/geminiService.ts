@@ -7,11 +7,11 @@ export const performMycoAnalysis = async (
   focusArea: string = "USA National", 
   mode: 'amateur' | 'professional' = 'professional'
 ): Promise<AnalysisResult> => {
-  // Use process.env.API_KEY which is defined in vite.config.ts
-  const apiKey = process.env.API_KEY;
+  // Use process.env.GEMINI_API_KEY which is defined in vite.config.ts
+  const apiKey = process.env.GEMINI_API_KEY;
   
   if (!apiKey || apiKey === "undefined" || apiKey === "" || apiKey === "null") {
-    throw new Error("BUILD_INTEGRITY_FAILURE: The API_KEY environment variable was missing during the Vercel build process. Please add 'API_KEY' to your Vercel Project Settings and trigger a manual Redeploy.");
+    throw new Error("BUILD_INTEGRITY_FAILURE: The GEMINI_API_KEY environment variable was missing during the Vercel build process. Please add 'GEMINI_API_KEY' to your Vercel Project Settings and trigger a manual Redeploy.");
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -38,7 +38,7 @@ export const performMycoAnalysis = async (
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-3.1-pro-preview',
       contents: basePrompt,
       config: {
         thinkingConfig: { thinkingBudget: 32768 },

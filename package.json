@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "start": "sirv dist --host 0.0.0.0 --port 8080 --single"
+    "start": "sirv dist --host 0.0.0.0 --port 3000 --single"
   },
   "dependencies": {
     "@google/genai": "^1.37.0",

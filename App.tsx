@@ -31,7 +31,7 @@ export default function App() {
   const [viewMode, setViewMode] = useState<'amateur' | 'professional'>('professional');
 
   // Check if API key is present at runtime (baked in at build time)
-  const isKeyLoaded = !!(process.env.API_KEY && process.env.API_KEY !== "undefined");
+  const isKeyLoaded = !!(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "undefined");
 
   const [ledger, setLedger] = useState({ 
     gemini: isKeyLoaded ? 'idle' : 'blocked' as ResourceStatus, 
@@ -59,7 +59,7 @@ export default function App() {
     if (!species.trim()) return;
     
     if (!isKeyLoaded) {
-      setError("BUILD_INTEGRITY_FAILURE: No API_KEY detected. For Vercel deployments, ensure the 'API_KEY' environment variable is set in the Project Settings before building.");
+      setError("BUILD_INTEGRITY_FAILURE: No GEMINI_API_KEY detected. For Vercel deployments, ensure the 'GEMINI_API_KEY' environment variable is set in the Project Settings before building.");
       return;
     }
 
@@ -158,7 +158,7 @@ export default function App() {
             <div className="p-4 bg-amber-100 text-amber-600 rounded-2xl"><Key size={28} /></div>
             <div>
               <p className="text-sm font-black text-amber-900 uppercase tracking-widest mb-1">Deployment Alert: API Key Missing</p>
-              <p className="text-xs text-amber-700 font-medium leading-relaxed">This build was initialized without a <code>GOOGLE_API_KEY</code>. Remote users will not be able to perform analyses. Set the environment variable in your Vercel or Cloud Run dashboard and redeploy.</p>
+              <p className="text-xs text-amber-700 font-medium leading-relaxed">This build was initialized without a <code>GEMINI_API_KEY</code>. Remote users will not be able to perform analyses. Set the environment variable in your Vercel or Cloud Run dashboard and redeploy.</p>
             </div>
           </div>
         )}

@@ -30,6 +30,12 @@ MycoStrain Explorer is a high-precision bioinformatics dashboard designed for co
    - Add a new variable with Key: `API_KEY` and Value: `[Your Google API Key]`.
 3. **Redeploy**: If you added the key *after* the first build, you **must** trigger a manual Redeploy in the "Deployments" tab for the key to take effect.
 
+### 🔓 Public Access (Removing the Login Wall)
+If users are asked to "Log in to Vercel" to see your site:
+1. Go to your project **Settings**.
+2. Select **Deployment Protection**.
+3. Disable **"Vercel Authentication"**. By default, Vercel sometimes protects preview or team deployments with a login requirement. Turning this off allows public access.
+
 ### Option B: Google Cloud Run (Containerized)
 1. **Service Type**: "Continuously deploy from a source repository".
 2. **Variables**: Add `API_KEY` in the "Variables & Secrets" tab.
@@ -44,6 +50,7 @@ MycoStrain Explorer is a high-precision bioinformatics dashboard designed for co
 | **BUILD_INTEGRITY_FAILURE** | API Key missing at build time | Add `API_KEY` to Vercel/Cloud Run settings and REBUILD. |
 | **White Screen** | React Version Conflict | Remove `importmap` from `index.html` for production builds. |
 | **403 Forbidden** | Key is restricted | Check Google AI Studio for IP/Domain restrictions on your key. |
+| **Vercel Login Prompt** | Deployment Protection is ON | Disable 'Vercel Authentication' in Project Settings. |
 
 ---
 **Version**: 4.2.0  
