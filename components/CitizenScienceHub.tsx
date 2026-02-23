@@ -24,7 +24,7 @@ export const CitizenScienceHub: React.FC<CitizenScienceHubProps> = ({ missions, 
           <div>
             <h3 className="text-3xl font-black text-slate-900 tracking-tighter mb-3">Adventure & Field Missions</h3>
             <p className="text-slate-600 font-medium max-w-2xl leading-relaxed">
-              We have put together <span className="text-emerald-600 font-bold">{missions.length} ways for you to help</span> out. These tasks are designed to help nature enthusiasts find and share observations of <span className="font-bold text-slate-900">{speciesName}</span>.
+              We have put together <span className="text-emerald-600 font-bold">{(missions || []).length} ways for you to help</span> out. These tasks are designed to help nature enthusiasts find and share observations of <span className="font-bold text-slate-900">{speciesName}</span>.
             </p>
           </div>
         </div>
@@ -44,7 +44,7 @@ export const CitizenScienceHub: React.FC<CitizenScienceHubProps> = ({ missions, 
       </div>
 
       <div className="mt-10 pt-8 border-t border-emerald-100 grid grid-cols-1 sm:grid-cols-3 gap-6">
-        {missions.map((mission, idx) => (
+        {(missions || []).map((mission, idx) => (
           <div key={idx} className="bg-white/50 p-6 rounded-3xl border border-emerald-100/50">
             <div className="flex items-center justify-between mb-3">
               <p className={`text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest ${

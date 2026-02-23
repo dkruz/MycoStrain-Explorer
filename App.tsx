@@ -50,7 +50,7 @@ export default function App() {
   const uniqueSnps = useMemo(() => {
     if (!result) return [];
     const snpSet = new Set<string>();
-    result.haplotypes.forEach(h => h.snps.forEach(s => snpSet.add(s)));
+    (result.haplotypes || []).forEach(h => (h.snps || []).forEach(s => snpSet.add(s)));
     return Array.from(snpSet).sort();
   }, [result]);
 
@@ -90,26 +90,26 @@ export default function App() {
     fullContent += `MYCOSTRAIN EXPLORER: ${viewMode.toUpperCase()} DOSSIER\n`;
     fullContent += `========================================================\n\n`;
     fullContent += `[GENERAL METADATA]\nSpecies: ${result.speciesName}\nMode: ${isPro ? 'Professional Mycologist' : 'Nature Enthusiast'}\nFocus Area: ${result.focusArea}\nTimestamp: ${timestamp}\nProtocol Version: ${APP_VERSION}\n\n`;
-    fullContent += `[VITAL STATISTICS]\nNucleotide Diversity (π): ${result.nucleotideDiversity.toFixed(6)}\nEstimated Regional Haplotypes: ${result.estimatedTotalHaplotypes}\nEstimated Global Haplotypes: ${result.estimatedGlobalHaplotypes}\nAncestral Center of Origin: ${result.ancestralOrigin}\n\n`;
+    fullContent += `[VITAL STATISTICS]\nNucleotide Diversity (π): ${(result.nucleotideDiversity ?? 0).toFixed(6)}\nEstimated Regional Haplotypes: ${result.estimatedTotalHaplotypes}\nEstimated Global Haplotypes: ${result.estimatedGlobalHaplotypes}\nAncestral Center of Origin: ${result.ancestralOrigin}\n\n`;
     fullContent += `[DATA PROVENANCE TRUST PROFILE]\nNetwork Confidence: ${result.trustProfile.network.deterministicRatio}% Deterministic / ${result.trustProfile.network.probabilisticRatio}% Probabilistic\nTimeline Accuracy: ${result.trustProfile.timeline.deterministicRatio}% Deterministic / ${result.trustProfile.timeline.probabilisticRatio}% Probabilistic\nDataTable Veracity: ${result.trustProfile.dataTable.deterministicRatio}% Deterministic / ${result.trustProfile.dataTable.probabilisticRatio}% Probabilistic\n\n`;
     fullContent += `[RESEARCH SUMMARY]\n--------------------------------------------------------\n${result.dossier}\n--------------------------------------------------------\n\n`;
     fullContent += `[GENOMIC HAPLOTYPE REGISTRY]\nID\tRegion\tSimilarity\tAge (Mya)\tFunctional Trait\tSNP Markers\n`;
-    result.haplotypes.forEach(h => {
-      fullContent += `${h.id}\t${h.region}\t${h.similarity}%\t${h.divergenceTime}\t${h.functionalTrait}\t[${h.snps.join(', ')}]\n`;
+    (result.haplotypes || []).forEach(h => {
+      fullContent += `${h.id}\t${h.region}\t${h.similarity}%\t${h.divergenceTime}\t${h.functionalTrait}\t[${(h.snps || []).join(', ')}]\n`;
     });
     fullContent += `\n`;
 
-    if (!isPro && result.citizenScienceMissions && result.citizenScienceMissions.length > 0) {
+    if (!isPro && result.citizenScienceMissions && (result.citizenScienceMissions || []).length > 0) {
       fullContent += `[ADVENTURE & FIELD MISSIONS]\n`;
-      result.citizenScienceMissions.forEach((m, idx) => {
+      (result.citizenScienceMissions || []).forEach((m, idx) => {
         fullContent += `\n${idx + 1}. ${m.title.toUpperCase()} [PRIORITY: ${m.priority.toUpperCase()}]\nMission: ${m.action}\nContext: ${m.description}\n`;
       });
       fullContent += `\n`;
     }
 
-    if (isPro && result.sources.length > 0) {
+    if (isPro && (result.sources || []).length > 0) {
       fullContent += `[GROUNDING EVIDENCE SOURCES]\n`;
-      result.sources.forEach((s, idx) => {
+      (result.sources || []).forEach((s, idx) => {
         fullContent += `${idx + 1}. ${s.title} (${s.uri})\n`;
       });
       fullContent += `\n`;
@@ -202,7 +202,7 @@ export default function App() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
               {[
                 { label: viewMode === 'amateur' ? "Original Home" : "Ancestral Root", val: result.ancestralOrigin, icon: History },
-                { label: viewMode === 'amateur' ? "Variety Score" : "Drift Index (Pi)", val: result.nucleotideDiversity.toFixed(4), icon: Scale },
+                { label: viewMode === 'amateur' ? "Variety Score" : "Drift Index (Pi)", val: (result.nucleotideDiversity ?? 0).toFixed(4), icon: Scale },
                 { label: viewMode === 'amateur' ? "Cousins Found" : "Haplotype Count", val: result.haplotypes.length, icon: Users },
                 { label: "AI Protocol", val: "Thinking-32k", icon: Zap }
               ].map((stat, i) => (
@@ -225,14 +225,14 @@ export default function App() {
               <div className="overflow-x-auto custom-scrollbar pb-4">
                 <table className="w-full text-left border-collapse">
                   <thead><tr><th className="p-4 bg-slate-800 text-[10px] font-black text-slate-400 uppercase border border-slate-700">{viewMode === 'amateur' ? 'Variety' : 'Haplotype'}</th><th className="p-4 bg-slate-800 text-[10px] font-black text-slate-400 uppercase border border-slate-700">{viewMode === 'amateur' ? 'Estimated Age' : 'Divergence (Mya)'}</th><th className="p-4 bg-slate-800 text-[10px] font-black text-slate-400 uppercase border border-slate-700">{viewMode === 'amateur' ? 'Unique Traits' : 'Functional Ontology'}</th>{viewMode === 'professional' && uniqueSnps.slice(0, 8).map(snp => (<th key={snp} className="p-4 bg-slate-800 text-[10px] font-mono font-black text-indigo-300 border border-slate-700 text-center">{snp}</th>))}</tr></thead>
-                  <tbody>{result.haplotypes.map((h) => (<tr key={h.id} className="hover:bg-slate-800/50"><td className="p-4 text-xs font-black text-white border border-slate-800">{h.id}</td><td className="p-4 text-xs font-mono text-indigo-400 border border-slate-800">{viewMode === 'amateur' ? `${h.divergenceTime} Million Yrs` : `${h.divergenceTime} Mya`}</td><td className="p-4 text-[11px] text-slate-400 font-medium italic border border-slate-800">{h.functionalTrait}</td>{viewMode === 'professional' && uniqueSnps.slice(0, 8).map(snp => (<td key={snp} className="p-4 border border-slate-800 text-center">{h.snps.includes(snp) ? <div className="w-2 h-2 rounded-full bg-indigo-500 mx-auto"></div> : <div className="w-1 h-1 rounded-full bg-slate-700 mx-auto opacity-30"></div>}</td>))}</tr>))}</tbody>
+                  <tbody>{(result.haplotypes || []).map((h) => (<tr key={h.id} className="hover:bg-slate-800/50"><td className="p-4 text-xs font-black text-white border border-slate-800">{h.id}</td><td className="p-4 text-xs font-mono text-indigo-400 border border-slate-800">{viewMode === 'amateur' ? `${h.divergenceTime} Million Yrs` : `${h.divergenceTime} Mya`}</td><td className="p-4 text-[11px] text-slate-400 font-medium italic border border-slate-800">{h.functionalTrait}</td>{viewMode === 'professional' && uniqueSnps.slice(0, 8).map(snp => (<td key={snp} className="p-4 border border-slate-800 text-center">{(h.snps || []).includes(snp) ? <div className="w-2 h-2 rounded-full bg-indigo-500 mx-auto"></div> : <div className="w-1 h-1 rounded-full bg-slate-700 mx-auto opacity-30"></div>}</td>))}</tr>))}</tbody>
                 </table>
               </div>
             </div>
 
             <div className="grid lg:grid-cols-3 gap-10">
               <div className="lg:col-span-2"><div className="bg-white p-12 rounded-[3rem] border border-slate-200 shadow-sm h-full"><div className="flex items-center gap-4 mb-8 pb-6 border-b border-slate-100"><FileText className={viewMode === 'amateur' ? 'text-emerald-600' : 'text-indigo-600'} /><h3 className="text-2xl font-black uppercase text-slate-900 tracking-tight">{viewMode === 'amateur' ? 'The Species Story' : 'Origin & Evolutionary Dossier'}</h3></div><p className={`text-lg text-slate-800 border-l-4 pl-6 py-2 mb-10 leading-relaxed ${viewMode === 'amateur' ? 'border-emerald-200 bg-emerald-50/20' : 'border-indigo-200 bg-indigo-50/20'}`}>{result.dossier}</p></div></div>
-              <div className="space-y-8"><button onClick={handleExportDossier} className="w-full bg-slate-900 hover:bg-slate-800 text-white p-10 rounded-[2.5rem] font-black flex flex-col items-center gap-4 shadow-2xl transition-all active:scale-95"><Download size={32} /><div className="text-center"><p className="text-xl">Export Report</p><p className="text-[10px] text-slate-500 uppercase mt-1">Full {viewMode} Dossier</p></div></button><div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm"><h4 className="font-black text-[10px] uppercase text-slate-400 mb-8 flex items-center gap-2"><Link size={14} className="text-indigo-400" /> Grounding Evidence</h4><div className="space-y-4">{result.sources.length > 0 ? result.sources.map((s, i) => (<a key={i} href={s.uri} target="_blank" rel="noopener noreferrer" className="block p-4 rounded-2xl bg-slate-50 hover:bg-indigo-50 transition-colors"><p className="font-bold text-slate-800 text-xs truncate">{s.title}</p><p className="text-[9px] text-slate-400 font-mono mt-1">{new URL(s.uri).hostname}</p></a>)) : <p className="text-xs text-slate-400 text-center py-4 italic">No external links found.</p>}</div></div></div>
+              <div className="space-y-8"><button onClick={handleExportDossier} className="w-full bg-slate-900 hover:bg-slate-800 text-white p-10 rounded-[2.5rem] font-black flex flex-col items-center gap-4 shadow-2xl transition-all active:scale-95"><Download size={32} /><div className="text-center"><p className="text-xl">Export Report</p><p className="text-[10px] text-slate-500 uppercase mt-1">Full {viewMode} Dossier</p></div></button><div className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm"><h4 className="font-black text-[10px] uppercase text-slate-400 mb-8 flex items-center gap-2"><Link size={14} className="text-indigo-400" /> Grounding Evidence</h4><div className="space-y-4">{(result.sources || []).length > 0 ? (result.sources || []).map((s, i) => (<a key={i} href={s.uri} target="_blank" rel="noopener noreferrer" className="block p-4 rounded-2xl bg-slate-50 hover:bg-indigo-50 transition-colors"><p className="font-bold text-slate-800 text-xs truncate">{s.title}</p><p className="text-[9px] text-slate-400 font-mono mt-1">{new URL(s.uri).hostname}</p></a>)) : <p className="text-xs text-slate-400 text-center py-4 italic">No external links found.</p>}</div></div></div>
             </div>
             {viewMode === 'amateur' && (<CitizenScienceHub missions={result.citizenScienceMissions} speciesName={result.speciesName} onDownloadDossier={handleExportDossier} />)}
           </div>

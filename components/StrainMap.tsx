@@ -223,7 +223,7 @@ export const StrainMap: React.FC<StrainMapProps> = ({ data, mode = 'professional
               <div className="animate-in fade-in slide-in-from-right-4 space-y-6">
                 <div className="flex items-center justify-between">
                   <span className={`px-4 py-1.5 rounded-xl text-white font-mono font-black text-xs ${mode === 'amateur' ? 'bg-emerald-600' : 'bg-indigo-600'}`}>{selectedStrain.id}</span>
-                  <p className="text-sm font-black text-slate-900">{normalizeSim(selectedStrain.similarity).toFixed(1)}%</p>
+                  <p className="text-sm font-black text-slate-900">{(normalizeSim(selectedStrain.similarity) ?? 0).toFixed(1)}%</p>
                 </div>
                 <h4 className="font-black text-2xl text-slate-900 tracking-tight">{selectedStrain.region}</h4>
                 <div className={`p-6 rounded-[2rem] text-white shadow-lg ${mode === 'amateur' ? 'bg-emerald-700' : 'bg-slate-900'}`}>

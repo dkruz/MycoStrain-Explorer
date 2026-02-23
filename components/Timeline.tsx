@@ -11,7 +11,7 @@ interface EvolutionaryTimelineProps {
 }
 
 export const EvolutionaryTimeline: React.FC<EvolutionaryTimelineProps> = ({ data, trust, mode = 'professional' }) => {
-  const sortedData = [...data].sort((a, b) => b.divergenceTime - a.divergenceTime).slice(0, 10);
+  const sortedData = [...(data || [])].sort((a, b) => b.divergenceTime - a.divergenceTime).slice(0, 10);
 
   return (
     <div className="bg-white p-10 rounded-[3rem] shadow-xl border border-slate-200">

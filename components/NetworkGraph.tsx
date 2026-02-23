@@ -127,7 +127,7 @@ export const NetworkGraph: React.FC<{ data: Haplotype[], trust?: ComponentTrust,
               <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
                 <div className="flex items-center justify-between">
                   <span className={`px-3 py-1 rounded-lg text-white font-mono font-black text-[10px] ${mode === 'amateur' ? 'bg-emerald-600' : 'bg-fuchsia-600'}`}>{hoveredNode.id}</span>
-                  <p className="text-xs font-black text-slate-900">{normalizeSim(hoveredNode.similarity).toFixed(1)}%</p>
+                  <p className="text-xs font-black text-slate-900">{(normalizeSim(hoveredNode.similarity) ?? 0).toFixed(1)}%</p>
                 </div>
                 <p className="font-black text-slate-900 text-xl leading-tight">{hoveredNode.region}</p>
                 <div className="space-y-4">
