@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Wifi, Activity, Globe, Shield, Terminal, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Tooltip } from './Tooltip';
 
 export type ResourceStatus = 'idle' | 'pending' | 'success' | 'blocked';
 
@@ -22,22 +23,28 @@ export const NetworkConsole: React.FC<NetworkConsoleProps> = ({ resources, isOpe
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-y-0 right-0 w-80 bg-slate-900 border-l border-slate-800 shadow-2xl z-[60] flex flex-col animate-in slide-in-from-right duration-300">
+    <div className="fixed inset-y-0 right-0 w-80 bg-slate-900 border-l border-slate-800 shadow-2xl z-[60] flex flex-col animate-in slide-in-from-right duration-300" role="dialog" aria-modal="false" aria-labelledby="console-title">
       <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-950">
         <div className="flex items-center gap-3">
-          <Terminal size={18} className="text-indigo-400" />
-          <h3 className="text-xs font-black text-white uppercase tracking-widest">Resource Ledger</h3>
+          <Terminal size={18} className="text-indigo-400" aria-hidden="true" />
+          <h3 id="console-title" className="text-xs font-black text-white uppercase tracking-widest">Resource Ledger</h3>
         </div>
-        <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors">
-          <Activity size={18} />
-        </button>
+        <Tooltip content="Close Console" position="left">
+          <button 
+            onClick={onClose} 
+            className="text-slate-400 hover:text-white transition-colors focus:ring-2 focus:ring-indigo-500 focus:outline-none rounded-lg p-1"
+            aria-label="Close Network Console"
+          >
+            <Activity size={18} aria-hidden="true" />
+          </button>
+        </Tooltip>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
         <div className="p-4 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl mb-6">
           <p className="text-[10px] font-black text-indigo-300 uppercase tracking-widest mb-1">Live Connection Pulse</p>
           <div className="flex items-center gap-2">
-            <div className="flex gap-1 h-3 items-end">
+            <div className="flex gap-1 h-3 items-end" aria-hidden="true">
               {[1, 2, 3, 4, 5].map(i => (
                 <div key={i} className="w-1 bg-indigo-500 animate-pulse" style={{ height: `${Math.random() * 100}%`, animationDelay: `${i * 0.1}s` }} />
               ))}
@@ -52,17 +59,17 @@ export const NetworkConsole: React.FC<NetworkConsoleProps> = ({ resources, isOpe
               <span className={`text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-tighter ${
                 res.category === 'API' ? 'bg-indigo-500/20 text-indigo-400' :
                 res.category === 'Data' ? 'bg-emerald-500/20 text-emerald-400' :
-                'bg-slate-500/20 text-slate-400'
+                'bg-slate-500/20 text-slate-300'
               }`}>
                 {res.category}
               </span>
-              {res.status === 'pending' && <Loader2 size={12} className="text-indigo-400 animate-spin" />}
-              {res.status === 'success' && <CheckCircle2 size={12} className="text-emerald-500" />}
-              {res.status === 'blocked' && <AlertCircle size={12} className="text-amber-500" />}
+              {res.status === 'pending' && <Loader2 size={12} className="text-indigo-400 animate-spin" aria-hidden="true" />}
+              {res.status === 'success' && <CheckCircle2 size={12} className="text-emerald-500" aria-hidden="true" />}
+              {res.status === 'blocked' && <AlertCircle size={12} className="text-amber-500" aria-hidden="true" />}
             </div>
             
             <h4 className="text-[11px] font-black text-slate-200 mb-1">{res.name}</h4>
-            <p className="text-[9px] font-mono text-slate-500 truncate group-hover:text-slate-400 transition-colors">{res.url}</p>
+            <p className="text-[9px] font-mono text-slate-400 truncate group-hover:text-slate-300 transition-colors">{res.url}</p>
             
             <div className="mt-3 flex items-center gap-2">
               <div className={`w-1.5 h-1.5 rounded-full ${
@@ -70,8 +77,8 @@ export const NetworkConsole: React.FC<NetworkConsoleProps> = ({ resources, isOpe
                 res.status === 'pending' ? 'bg-indigo-500 animate-pulse' :
                 res.status === 'blocked' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]' :
                 'bg-slate-700'
-              }`} />
-              <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest">
+              }`} aria-hidden="true" />
+              <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">
                 {res.status === 'idle' ? 'Ready' :
                  res.status === 'pending' ? 'Handshaking...' :
                  res.status === 'success' ? 'Connected' : 'Blocked / Fail'}
@@ -83,10 +90,10 @@ export const NetworkConsole: React.FC<NetworkConsoleProps> = ({ resources, isOpe
 
       <div className="p-6 bg-slate-950 border-t border-slate-800">
         <div className="flex items-center gap-3 text-amber-500/80 mb-3">
-          <Shield size={14} />
+          <Shield size={14} aria-hidden="true" />
           <p className="text-[9px] font-black uppercase tracking-widest">Security Advisory</p>
         </div>
-        <p className="text-[10px] text-slate-500 leading-relaxed font-medium">
+        <p className="text-[10px] text-slate-400 leading-relaxed font-medium">
           If a resource appears <span className="text-amber-500">Blocked</span>, check your VPN tunnel or local browser firewall permissions for the specified domain.
         </p>
       </div>

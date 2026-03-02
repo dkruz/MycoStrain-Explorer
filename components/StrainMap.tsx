@@ -2,7 +2,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { Haplotype } from '../types';
-import { ZoomIn, ZoomOut, RotateCcw, Target, Layers, Map as MapIcon, Loader2, TreeDeciduous, Globe, MapPin } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, Target, Layers, Map as MapIcon, Loader2, TreeDeciduous, Globe, MapPin, FlaskConical, Bug, Activity } from 'lucide-react';
+import { Tooltip } from './Tooltip';
 
 interface StrainMapProps {
   data: Haplotype[];
@@ -176,63 +177,120 @@ export const StrainMap: React.FC<StrainMapProps> = ({ data, mode = 'professional
   }, [data, mode]);
 
   return (
-    <div className="bg-white p-8 rounded-[3.5rem] shadow-2xl border border-slate-200 overflow-hidden w-full col-span-full">
+    <div className="bg-white p-8 rounded-[3.5rem] shadow-2xl border border-slate-200 overflow-hidden w-full col-span-full" role="region" aria-labelledby="map-title">
       <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6 px-4">
         <div>
-          <h3 className="text-2xl font-black text-slate-900 flex items-center gap-3">
-            <MapIcon className={mode === 'amateur' ? 'text-emerald-600' : 'text-indigo-600'} /> 
+          <h3 id="map-title" className="text-2xl font-black text-slate-900 flex items-center gap-3">
+            <MapIcon className={mode === 'amateur' ? 'text-emerald-700' : 'text-indigo-700'} aria-hidden="true" /> 
             {mode === 'amateur' ? 'Local Variety Map' : 'Genomic Distribution Map'}
           </h3>
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">
             {mode === 'amateur' ? 'Regional cousins across the landscape' : 'v4.2 absolute phylogenetic contrast'}
           </p>
         </div>
         <div className="flex items-center gap-3 bg-slate-50 px-6 py-3 rounded-2xl border border-slate-100">
-          <Globe size={14} className="text-slate-400" />
-          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Projection: Continental Mercator</span>
+          <Globe size={14} className="text-slate-500" aria-hidden="true" />
+          <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Projection: Continental Mercator</span>
         </div>
       </div>
 
       <div className="flex flex-col xl:flex-row gap-8">
         <div className="relative flex-1 bg-slate-950 rounded-[3.5rem] min-h-[600px] shadow-inner ring-4 ring-slate-900 overflow-hidden group">
           {mapStatus === 'loading' && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/90 z-50 backdrop-blur-md">
-              <Loader2 className="animate-spin text-indigo-400 mb-4" size={40} />
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/90 z-50 backdrop-blur-md" role="status">
+              <Loader2 className="animate-spin text-indigo-400 mb-4" size={40} aria-hidden="true" />
               <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Re-rendering Genomic Baseline...</p>
             </div>
           )}
-          <svg ref={svgRef} viewBox="0 0 1200 750" className="w-full h-auto cursor-move">
+          <svg 
+            ref={svgRef} 
+            viewBox="0 0 1200 750" 
+            className="w-full h-auto cursor-move"
+            role="application"
+            aria-label="Interactive genomic distribution map of the United States"
+          >
             <g ref={gRef}></g>
           </svg>
           <div className="absolute bottom-8 left-8 flex flex-col gap-3 opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
-            <button onClick={() => handleZoom('in')} className="p-4 bg-slate-900/90 text-white rounded-2xl border border-slate-700 hover:bg-slate-800 shadow-xl"><ZoomIn size={20}/></button>
-            <button onClick={() => handleZoom('out')} className="p-4 bg-slate-900/90 text-white rounded-2xl border border-slate-700 hover:bg-slate-800 shadow-xl"><ZoomOut size={20}/></button>
-            <button onClick={resetToHome} className="p-4 bg-slate-900/90 text-white rounded-2xl border border-slate-700 hover:bg-slate-800 shadow-xl"><RotateCcw size={20}/></button>
+            <Tooltip content="Zoom In" position="right">
+              <button 
+                onClick={() => handleZoom('in')} 
+                className="p-4 bg-slate-900/90 text-white rounded-2xl border border-slate-700 hover:bg-slate-800 shadow-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                aria-label="Zoom In"
+              >
+                <ZoomIn size={20} aria-hidden="true" />
+              </button>
+            </Tooltip>
+            <Tooltip content="Zoom Out" position="right">
+              <button 
+                onClick={() => handleZoom('out')} 
+                className="p-4 bg-slate-900/90 text-white rounded-2xl border border-slate-700 hover:bg-slate-800 shadow-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                aria-label="Zoom Out"
+              >
+                <ZoomOut size={20} aria-hidden="true" />
+              </button>
+            </Tooltip>
+            <Tooltip content="Reset View" position="right">
+              <button 
+                onClick={resetToHome} 
+                className="p-4 bg-slate-900/90 text-white rounded-2xl border border-slate-700 hover:bg-slate-800 shadow-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                aria-label="Reset Map View"
+              >
+                <RotateCcw size={20} aria-hidden="true" />
+              </button>
+            </Tooltip>
           </div>
         </div>
 
         <div className="xl:w-80 flex-shrink-0">
-          <div className={`h-full min-h-[400px] p-8 rounded-[3rem] border-2 transition-all duration-500 ${selectedStrain ? 'border-indigo-500 bg-white shadow-xl' : 'border-dashed border-slate-200 bg-slate-50/50'}`}>
+          <div 
+            className={`h-full min-h-[400px] p-8 rounded-[3rem] border-2 transition-all duration-500 ${selectedStrain ? 'border-indigo-500 bg-white shadow-xl' : 'border-dashed border-slate-200 bg-slate-50/50'}`}
+            aria-live="polite"
+          >
             {!selectedStrain ? (
-              <div className="h-full flex flex-col items-center justify-center text-center py-12 text-slate-400">
-                <MapPin className="mx-auto mb-6 opacity-10 animate-bounce" size={48} />
+              <div className="h-full flex flex-col items-center justify-center text-center py-12 text-slate-500">
+                <MapPin className="mx-auto mb-6 opacity-10 animate-bounce" size={48} aria-hidden="true" />
                 <p className="text-[12px] font-black uppercase tracking-[0.2em] mb-4">Select Node</p>
                 <p className="text-[10px] leading-relaxed max-w-[180px] mx-auto opacity-70">Interactive boundaries are calibrated for {mode} mode. Select any node to inspect genetic properties.</p>
               </div>
             ) : (
               <div className="animate-in fade-in slide-in-from-right-4 space-y-6">
                 <div className="flex items-center justify-between">
-                  <span className={`px-4 py-1.5 rounded-xl text-white font-mono font-black text-xs ${mode === 'amateur' ? 'bg-emerald-600' : 'bg-indigo-600'}`}>{selectedStrain.id}</span>
+                  <span className={`px-4 py-1.5 rounded-xl text-white font-mono font-black text-xs ${mode === 'amateur' ? 'bg-emerald-700' : 'bg-indigo-700'}`}>{selectedStrain.id}</span>
                   <p className="text-sm font-black text-slate-900">{(normalizeSim(selectedStrain.similarity) ?? 0).toFixed(1)}%</p>
                 </div>
                 <h4 className="font-black text-2xl text-slate-900 tracking-tight">{selectedStrain.region}</h4>
-                <div className={`p-6 rounded-[2rem] text-white shadow-lg ${mode === 'amateur' ? 'bg-emerald-700' : 'bg-slate-900'}`}>
+                <div className={`p-6 rounded-[2rem] text-white shadow-lg ${mode === 'amateur' ? 'bg-emerald-800' : 'bg-slate-900'}`}>
                   <p className="text-[10px] font-black uppercase tracking-widest mb-3 opacity-60">{mode === 'amateur' ? 'Usual Home' : 'Substrate Index'}</p>
                   <p className="text-sm font-bold leading-relaxed">{selectedStrain.substrate}</p>
                 </div>
                 <div className="space-y-3 pt-2">
-                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2"><Layers size={14}/> {mode === 'amateur' ? 'What to Look For' : 'Functional Ontology'}</p>
-                  <p className="text-xs text-slate-600 italic leading-relaxed border-l-2 border-slate-100 pl-4">{selectedStrain.functionalTrait}</p>
+                  <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2"><Layers size={14} aria-hidden="true" /> {mode === 'amateur' ? 'What to Look For' : 'Functional Ontology'}</p>
+                  <p className="text-xs text-slate-700 italic leading-relaxed border-l-2 border-slate-200 pl-4">{selectedStrain.functionalTrait}</p>
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 pt-4 border-t border-slate-100">
+                  <div className="flex items-start gap-3">
+                    <FlaskConical size={14} className="text-indigo-600 mt-0.5" aria-hidden="true" />
+                    <div>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Chemistry</p>
+                      <p className="text-[11px] font-medium text-slate-700">{selectedStrain.chemistry}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Bug size={14} className="text-amber-600 mt-0.5" aria-hidden="true" />
+                    <div>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Insect Associations</p>
+                      <p className="text-[11px] font-medium text-slate-700">{selectedStrain.insectAssociations}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Activity size={14} className="text-emerald-600 mt-0.5" aria-hidden="true" />
+                    <div>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Regional Prevalence</p>
+                      <p className="text-[11px] font-medium text-slate-700">{selectedStrain.regionalPrevalence}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

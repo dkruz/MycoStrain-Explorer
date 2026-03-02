@@ -3,19 +3,37 @@ import { GoogleGenAI, Type, ThinkingLevel } from "@google/genai";
 import { AnalysisResult } from "../types";
 import { UsageTracker } from "./usageTracker";
 
+/**
+ * SMA V3.0 Key Accessor Pattern
+ * Prioritizes local user keys, then platform keys, then environment variables.
+ */
+const getAIClient = () => {
+  // 1. User-provided key (Stored in browser's localStorage)
+  if (typeof localStorage !== 'undefined') {
+    const userKey = localStorage.getItem('sma_user_api_key');
+    if (userKey) return new GoogleGenAI({ apiKey: userKey });
+  }
+
+  // 2. Platform-injected key (For Google AI Studio environment)
+  // 3. Environment variable (For Vercel/Production Master Key)
+  const key = 
+    (process.env as any).API_KEY || 
+    (process.env as any).GEMINI_API_KEY || 
+    (import.meta as any).env.VITE_GEMINI_API_KEY;
+
+  if (!key) {
+    console.warn("SMA_INIT: No API Key detected. System requires user initialization.");
+  }
+  
+  return new GoogleGenAI({ apiKey: key || "" });
+};
+
 export const performMycoAnalysis = async (
   speciesName: string, 
   focusArea: string = "USA National", 
   mode: 'amateur' | 'professional' = 'professional'
 ): Promise<AnalysisResult> => {
-  // Use process.env.GEMINI_API_KEY which is defined in vite.config.ts
-  const apiKey = process.env.GEMINI_API_KEY;
-  
-  if (!apiKey || apiKey === "undefined" || apiKey === "" || apiKey === "null") {
-    throw new Error("BUILD_INTEGRITY_FAILURE: The GEMINI_API_KEY environment variable was missing during the Vercel build process. Please add 'GEMINI_API_KEY' to your Vercel Project Settings and trigger a manual Redeploy.");
-  }
-
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = getAIClient();
   
   const basePrompt = `
     Act as a Senior Computational Mycologist. Analyze: "${speciesName}".
@@ -124,6 +142,9 @@ export const performMycoAnalysis = async (
         }
       }
     });
+
+    // Record the usage immediately
+    UsageTracker.recordUsage(response.usageMetadata);
 
     let jsonStr = response.text || '{}';
     

@@ -2,6 +2,7 @@
 import React from 'react';
 import { ShieldCheck, BrainCircuit, Info } from 'lucide-react';
 import { ComponentTrust } from '../types';
+import { Tooltip } from './Tooltip';
 
 interface DataTrustIndicatorProps {
   metrics: ComponentTrust;
@@ -26,19 +27,23 @@ export const DataTrustIndicator: React.FC<DataTrustIndicatorProps> = ({ metrics,
   const probWidth = total > 0 ? (prob / total) * 100 : 0;
 
   return (
-    <div className="flex flex-col gap-2 min-w-[200px]">
-      <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-[0.15em] text-slate-500">
-        <span className="flex items-center gap-1.5">
-          <ShieldCheck size={10} className="text-indigo-600" /> 
-          Det: {det.toFixed(0)}%
-        </span>
-        <span className="flex items-center gap-1.5 text-right">
-          {prob.toFixed(0)}% Prob 
-          <BrainCircuit size={10} className="text-amber-600" />
-        </span>
+    <div className="flex flex-col gap-2 min-w-[200px]" role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={det} aria-label={`${label}: ${det.toFixed(0)}% Deterministic, ${prob.toFixed(0)}% Probabilistic`}>
+      <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-[0.15em] text-slate-600">
+        <Tooltip content="Empirical Evidence: Verified via physical records and search grounding.">
+          <span className="flex items-center gap-1.5 cursor-help">
+            <ShieldCheck size={10} className="text-indigo-700" aria-hidden="true" /> 
+            Det: {det.toFixed(0)}%
+          </span>
+        </Tooltip>
+        <Tooltip content="Synthesized Inference: AI-modeled biological drift and genomic projections.">
+          <span className="flex items-center gap-1.5 text-right cursor-help">
+            {prob.toFixed(0)}% Prob 
+            <BrainCircuit size={10} className="text-amber-700" aria-hidden="true" />
+          </span>
+        </Tooltip>
       </div>
       
-      <div className="h-3 w-full bg-slate-200 rounded-full overflow-hidden flex shadow-[inset_0_1px_3px_rgba(0,0,0,0.1)] border border-slate-300/50">
+      <div className="h-3 w-full bg-slate-200 rounded-full overflow-hidden flex shadow-[inset_0_1px_3px_rgba(0,0,0,0.1)] border border-slate-300/50" aria-hidden="true">
         {detWidth > 0 && (
           <div 
             className="h-full bg-indigo-600 transition-all duration-1000 ease-out border-r border-white/40" 
@@ -54,9 +59,14 @@ export const DataTrustIndicator: React.FC<DataTrustIndicatorProps> = ({ metrics,
       </div>
 
       <div className="flex items-center justify-between mt-0.5">
-        <p className="text-[10px] font-black text-slate-800 uppercase tracking-tighter">{label}</p>
+        <p className="text-[10px] font-black text-slate-900 uppercase tracking-tighter">{label}</p>
         <div className="group relative">
-          <Info size={12} className="text-slate-400 cursor-help hover:text-indigo-600 transition-colors" />
+          <button 
+            className="text-slate-500 cursor-help hover:text-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-full"
+            aria-label={`Information about ${label} provenance`}
+          >
+            <Info size={12} aria-hidden="true" />
+          </button>
           <div className="absolute bottom-full right-0 mb-3 w-56 p-4 bg-slate-900 text-white text-[10px] font-medium leading-relaxed rounded-2xl opacity-0 group-hover:opacity-100 transition-all pointer-events-none z-[100] shadow-2xl translate-y-1 group-hover:translate-y-0">
             <p className="mb-2 font-black border-b border-white/10 pb-2 uppercase tracking-widest text-[8px] text-indigo-400">Data Provenance Protocol</p>
             This metric calculates the balance between <span className="text-indigo-400 font-bold">Empirical Evidence</span> (Geographic records/PubMed citations) and <span className="text-amber-400 font-bold">Synthesized Inference</span> (AI-modeled genomic drift).
