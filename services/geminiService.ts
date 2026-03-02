@@ -1,6 +1,7 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, ThinkingLevel } from "@google/genai";
 import { AnalysisResult } from "../types";
+import { UsageTracker } from "./usageTracker";
 
 export const performMycoAnalysis = async (
   speciesName: string, 
@@ -38,35 +39,125 @@ export const performMycoAnalysis = async (
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-3.1-pro-preview',
       contents: basePrompt,
       config: {
         tools: [{ googleSearch: {} }],
+        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            speciesName: { type: Type.STRING },
+            nucleotideDiversity: { type: Type.NUMBER },
+            estimatedTotalHaplotypes: { type: Type.INTEGER },
+            estimatedGlobalHaplotypes: { type: Type.INTEGER },
+            ancestralOrigin: { type: Type.STRING },
+            dossier: { type: Type.STRING },
+            focusArea: { type: Type.STRING },
+            haplotypes: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING },
+                  region: { type: Type.STRING },
+                  snps: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  lat: { type: Type.NUMBER },
+                  lng: { type: Type.NUMBER },
+                  similarity: { type: Type.NUMBER },
+                  substrate: { type: Type.STRING },
+                  chemistry: { type: Type.STRING },
+                  insectAssociations: { type: Type.STRING },
+                  regionalPrevalence: { type: Type.INTEGER },
+                  divergenceTime: { type: Type.NUMBER },
+                  originCenter: { type: Type.STRING },
+                  functionalTrait: { type: Type.STRING }
+                },
+                required: ["id", "region", "snps", "lat", "lng", "similarity", "substrate", "chemistry", "insectAssociations", "regionalPrevalence", "divergenceTime", "originCenter", "functionalTrait"]
+              }
+            },
+            citizenScienceMissions: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  title: { type: Type.STRING },
+                  description: { type: Type.STRING },
+                  priority: { type: Type.STRING, enum: ["High", "Medium", "Low"] },
+                  action: { type: Type.STRING }
+                },
+                required: ["title", "description", "priority", "action"]
+              }
+            },
+            trustProfile: {
+              type: Type.OBJECT,
+              properties: {
+                network: {
+                  type: Type.OBJECT,
+                  properties: {
+                    deterministicRatio: { type: Type.NUMBER },
+                    probabilisticRatio: { type: Type.NUMBER },
+                    confidenceScore: { type: Type.NUMBER }
+                  }
+                },
+                timeline: {
+                  type: Type.OBJECT,
+                  properties: {
+                    deterministicRatio: { type: Type.NUMBER },
+                    probabilisticRatio: { type: Type.NUMBER },
+                    confidenceScore: { type: Type.NUMBER }
+                  }
+                },
+                dataTable: {
+                  type: Type.OBJECT,
+                  properties: {
+                    deterministicRatio: { type: Type.NUMBER },
+                    probabilisticRatio: { type: Type.NUMBER },
+                    confidenceScore: { type: Type.NUMBER }
+                  }
+                }
+              }
+            }
+          },
+          required: ["speciesName", "haplotypes", "nucleotideDiversity", "estimatedTotalHaplotypes", "estimatedGlobalHaplotypes", "dossier", "focusArea", "ancestralOrigin", "citizenScienceMissions", "trustProfile"]
+        }
       }
     });
 
     let jsonStr = response.text || '{}';
     
-    // Robustly extract the first JSON object by counting braces
-    const startIndex = jsonStr.indexOf('{');
-    if (startIndex !== -1) {
-      let depth = 0;
-      let inString = false;
-      let escape = false;
-      for (let i = startIndex; i < jsonStr.length; i++) {
-        const char = jsonStr[i];
-        if (inString) {
-          if (escape) escape = false;
-          else if (char === '\\') escape = true;
-          else if (char === '"') inString = false;
-        } else {
-          if (char === '"') inString = true;
-          else if (char === '{') depth++;
-          else if (char === '}') {
-            depth--;
-            if (depth === 0) {
-              jsonStr = jsonStr.substring(startIndex, i + 1);
-              break;
+    // The model should now strictly follow the schema, but we still handle potential markdown wrapping
+    jsonStr = jsonStr.trim();
+    if (jsonStr.startsWith('```')) {
+      const match = jsonStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (match) jsonStr = match[1];
+    }
+
+    // Fallback to brace extraction if JSON.parse fails or if there's still conversational noise
+    try {
+      JSON.parse(jsonStr);
+    } catch (e) {
+      const startIndex = jsonStr.indexOf('{');
+      if (startIndex !== -1) {
+        let depth = 0;
+        let inString = false;
+        let escape = false;
+        for (let i = startIndex; i < jsonStr.length; i++) {
+          const char = jsonStr[i];
+          if (inString) {
+            if (escape) escape = false;
+            else if (char === '\\') escape = true;
+            else if (char === '"') inString = false;
+          } else {
+            if (char === '"') inString = true;
+            else if (char === '{') depth++;
+            else if (char === '}') {
+              depth--;
+              if (depth === 0) {
+                jsonStr = jsonStr.substring(startIndex, i + 1);
+                break;
+              }
             }
           }
         }

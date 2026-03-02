@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { performMycoAnalysis } from './services/geminiService';
 import { trackSearch, trackProtocolView } from './services/analytics';
+import { UsageTracker } from './services/usageTracker';
 import { AnalysisResult, Haplotype } from './types';
 import { StrainMap } from './components/StrainMap';
 import { NetworkGraph } from './components/NetworkGraph';
@@ -29,6 +30,10 @@ export default function App() {
   const [showGuide, setShowGuide] = useState(false);
   const [showConsole, setShowConsole] = useState(false);
   const [viewMode, setViewMode] = useState<'amateur' | 'professional'>('professional');
+
+  useEffect(() => {
+    UsageTracker.render();
+  }, []);
 
   // Check if API key is present at runtime (baked in at build time)
   const isKeyLoaded = !!(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "undefined");
