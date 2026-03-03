@@ -212,17 +212,35 @@ export default function App() {
               >
                 Initialize Kernel
               </button>
+              <a 
+                href="https://aistudio.google.com/app/apikey" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="block text-[10px] text-emerald-500/60 hover:text-emerald-400 font-black uppercase tracking-[0.2em] transition-colors mt-4"
+              >
+                Get a key at Google AI Studio
+              </a>
             </div>
           )}
           
           {isAIS && (
-            <button 
-              onClick={() => (window as any).aistudio.openSelectKey()} 
-              className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-mono tracking-[0.2em] uppercase rounded-xl font-black transition-all focus:ring-4 focus:ring-emerald-500 focus:outline-none"
-              aria-label="Open API Key selection dialog"
-            >
-              Select Key
-            </button>
+            <div className="space-y-4">
+              <button 
+                onClick={() => (window as any).aistudio.openSelectKey()} 
+                className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-mono tracking-[0.2em] uppercase rounded-xl font-black transition-all focus:ring-4 focus:ring-emerald-500 focus:outline-none"
+                aria-label="Open API Key selection dialog"
+              >
+                Select Key
+              </button>
+              <a 
+                href="https://aistudio.google.com/app/apikey" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="block text-[10px] text-emerald-500/60 hover:text-emerald-400 font-black uppercase tracking-[0.2em] transition-colors mt-4"
+              >
+                Get a key at Google AI Studio
+              </a>
+            </div>
           )}
 
           <div className="mt-8 pt-8 border-t border-white/5 flex items-center justify-center gap-2 text-[10px] font-black text-slate-600 uppercase tracking-widest">
