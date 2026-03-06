@@ -46,7 +46,10 @@ export default function App() {
       // B. Detect Vercel/Production BYOK
       const savedKey = localStorage.getItem('sma_user_api_key');
       const envKey = (import.meta as any).env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-      setHasApiKey(!!(savedKey || envKey));
+      
+      // Robust check: Ensure key exists and isn't the literal string "undefined"
+      const isValidEnvKey = envKey && envKey !== "undefined" && envKey !== "";
+      setHasApiKey(!!(savedKey || isValidEnvKey));
     };
     checkKey();
     UsageTracker.render();
@@ -67,7 +70,11 @@ export default function App() {
   };
 
   // Check if API key is present at runtime (baked in at build time)
-  const isKeyLoaded = !!(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "undefined");
+  const isKeyLoaded = !!(
+    (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "undefined") ||
+    ((import.meta as any).env.VITE_GEMINI_API_KEY && (import.meta as any).env.VITE_GEMINI_API_KEY !== "undefined") ||
+    localStorage.getItem('sma_user_api_key')
+  );
 
   const [ledger, setLedger] = useState({ 
     gemini: isKeyLoaded ? 'idle' : 'blocked' as ResourceStatus, 

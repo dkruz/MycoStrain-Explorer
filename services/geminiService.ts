@@ -11,15 +11,17 @@ const getAIClient = () => {
   // 1. User-provided key (Stored in browser's localStorage)
   if (typeof localStorage !== 'undefined') {
     const userKey = localStorage.getItem('sma_user_api_key');
-    if (userKey) return new GoogleGenAI({ apiKey: userKey });
+    if (userKey && userKey !== "undefined") return new GoogleGenAI({ apiKey: userKey });
   }
 
   // 2. Platform-injected key (For Google AI Studio environment)
   // 3. Environment variable (For Vercel/Production Master Key)
-  const key = 
+  let key = 
     (process.env as any).API_KEY || 
     (process.env as any).GEMINI_API_KEY || 
     (import.meta as any).env.VITE_GEMINI_API_KEY;
+
+  if (key === "undefined") key = undefined;
 
   if (!key) {
     console.warn("SMA_INIT: No API Key detected. System requires user initialization.");
@@ -55,93 +57,117 @@ export const performMycoAnalysis = async (
     Return valid JSON.
   `;
 
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.1-pro-preview',
-      contents: basePrompt,
-      config: {
-        tools: [{ googleSearch: {} }],
-        thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            speciesName: { type: Type.STRING },
-            nucleotideDiversity: { type: Type.NUMBER },
-            estimatedTotalHaplotypes: { type: Type.INTEGER },
-            estimatedGlobalHaplotypes: { type: Type.INTEGER },
-            ancestralOrigin: { type: Type.STRING },
-            dossier: { type: Type.STRING },
-            focusArea: { type: Type.STRING },
-            haplotypes: {
-              type: Type.ARRAY,
-              items: {
+  const generateWithModel = async (modelName: string, timeoutMs: number): Promise<any> => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await ai.models.generateContent({
+        model: modelName,
+        contents: basePrompt,
+        config: {
+          tools: [{ googleSearch: {} }],
+          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              speciesName: { type: Type.STRING },
+              nucleotideDiversity: { type: Type.NUMBER },
+              estimatedTotalHaplotypes: { type: Type.INTEGER },
+              estimatedGlobalHaplotypes: { type: Type.INTEGER },
+              ancestralOrigin: { type: Type.STRING },
+              dossier: { type: Type.STRING },
+              focusArea: { type: Type.STRING },
+              haplotypes: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    id: { type: Type.STRING },
+                    region: { type: Type.STRING },
+                    snps: { type: Type.ARRAY, items: { type: Type.STRING } },
+                    lat: { type: Type.NUMBER },
+                    lng: { type: Type.NUMBER },
+                    similarity: { type: Type.NUMBER },
+                    substrate: { type: Type.STRING },
+                    chemistry: { type: Type.STRING },
+                    insectAssociations: { type: Type.STRING },
+                    regionalPrevalence: { type: Type.INTEGER },
+                    divergenceTime: { type: Type.NUMBER },
+                    originCenter: { type: Type.STRING },
+                    functionalTrait: { type: Type.STRING }
+                  },
+                  required: ["id", "region", "snps", "lat", "lng", "similarity", "substrate", "chemistry", "insectAssociations", "regionalPrevalence", "divergenceTime", "originCenter", "functionalTrait"]
+                }
+              },
+              citizenScienceMissions: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    title: { type: Type.STRING },
+                    description: { type: Type.STRING },
+                    priority: { type: Type.STRING, enum: ["High", "Medium", "Low"] },
+                    action: { type: Type.STRING }
+                  },
+                  required: ["title", "description", "priority", "action"]
+                }
+              },
+              trustProfile: {
                 type: Type.OBJECT,
                 properties: {
-                  id: { type: Type.STRING },
-                  region: { type: Type.STRING },
-                  snps: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  lat: { type: Type.NUMBER },
-                  lng: { type: Type.NUMBER },
-                  similarity: { type: Type.NUMBER },
-                  substrate: { type: Type.STRING },
-                  chemistry: { type: Type.STRING },
-                  insectAssociations: { type: Type.STRING },
-                  regionalPrevalence: { type: Type.INTEGER },
-                  divergenceTime: { type: Type.NUMBER },
-                  originCenter: { type: Type.STRING },
-                  functionalTrait: { type: Type.STRING }
-                },
-                required: ["id", "region", "snps", "lat", "lng", "similarity", "substrate", "chemistry", "insectAssociations", "regionalPrevalence", "divergenceTime", "originCenter", "functionalTrait"]
-              }
-            },
-            citizenScienceMissions: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  title: { type: Type.STRING },
-                  description: { type: Type.STRING },
-                  priority: { type: Type.STRING, enum: ["High", "Medium", "Low"] },
-                  action: { type: Type.STRING }
-                },
-                required: ["title", "description", "priority", "action"]
-              }
-            },
-            trustProfile: {
-              type: Type.OBJECT,
-              properties: {
-                network: {
-                  type: Type.OBJECT,
-                  properties: {
-                    deterministicRatio: { type: Type.NUMBER },
-                    probabilisticRatio: { type: Type.NUMBER },
-                    confidenceScore: { type: Type.NUMBER }
-                  }
-                },
-                timeline: {
-                  type: Type.OBJECT,
-                  properties: {
-                    deterministicRatio: { type: Type.NUMBER },
-                    probabilisticRatio: { type: Type.NUMBER },
-                    confidenceScore: { type: Type.NUMBER }
-                  }
-                },
-                dataTable: {
-                  type: Type.OBJECT,
-                  properties: {
-                    deterministicRatio: { type: Type.NUMBER },
-                    probabilisticRatio: { type: Type.NUMBER },
-                    confidenceScore: { type: Type.NUMBER }
+                  network: {
+                    type: Type.OBJECT,
+                    properties: {
+                      deterministicRatio: { type: Type.NUMBER },
+                      probabilisticRatio: { type: Type.NUMBER },
+                      confidenceScore: { type: Type.NUMBER }
+                    }
+                  },
+                  timeline: {
+                    type: Type.OBJECT,
+                    properties: {
+                      deterministicRatio: { type: Type.NUMBER },
+                      probabilisticRatio: { type: Type.NUMBER },
+                      confidenceScore: { type: Type.NUMBER }
+                    }
+                  },
+                  dataTable: {
+                    type: Type.OBJECT,
+                    properties: {
+                      deterministicRatio: { type: Type.NUMBER },
+                      probabilisticRatio: { type: Type.NUMBER },
+                      confidenceScore: { type: Type.NUMBER }
+                    }
                   }
                 }
               }
-            }
-          },
-          required: ["speciesName", "haplotypes", "nucleotideDiversity", "estimatedTotalHaplotypes", "estimatedGlobalHaplotypes", "dossier", "focusArea", "ancestralOrigin", "citizenScienceMissions", "trustProfile"]
-        }
+            },
+            required: ["speciesName", "haplotypes", "nucleotideDiversity", "estimatedTotalHaplotypes", "estimatedGlobalHaplotypes", "dossier", "focusArea", "ancestralOrigin", "citizenScienceMissions", "trustProfile"]
+          }
+        },
+        signal: controller.signal
+      } as any); // Type cast because signal might not be in the SDK types yet but is supported by fetch
+      return response;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  };
+
+  try {
+    let response;
+    try {
+      console.log("SMA_ANALYSIS: Attempting primary analysis with gemini-3.1-pro-preview...");
+      response = await generateWithModel('gemini-3.1-pro-preview', 20000);
+    } catch (err: any) {
+      if (err.name === 'AbortError' || err.message?.includes('timeout') || err.message?.includes('deadline')) {
+        console.warn("SMA_ANALYSIS: Primary model (3.1 Pro) timed out or failed. Falling back to gemini-3.1-flash-lite-preview...");
+        response = await generateWithModel('gemini-3.1-flash-lite-preview', 60000);
+      } else {
+        throw err;
       }
-    });
+    }
 
     // Record the usage immediately
     UsageTracker.recordUsage(response.usageMetadata);
